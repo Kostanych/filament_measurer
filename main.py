@@ -97,10 +97,10 @@ def process_image(image='photo_1.jpg', color=True):
         max_p = 250
         mask = cv2.inRange(image_np, min_p, max_p)
 
-    cv2.imshow('mask', mask)
+    cv2.imshow('image', image_np)
     cv2.waitKey(0)
 
-    cv2.imshow('image', image_np)
+    cv2.imshow('mask', mask)
     cv2.waitKey(0)
 
     print('Start to prosess mask')
@@ -108,6 +108,8 @@ def process_image(image='photo_1.jpg', color=True):
     print('Complete!')
     cv2.imshow('mask_processed', mask_processed)
     cv2.waitKey(0)
+
+
 
     # closing all open windows
     cv2.destroyAllWindows()
@@ -119,20 +121,89 @@ def process_image(image='photo_1.jpg', color=True):
     print('Done')
     return mask_processed
 
-
 mask = process_image()
-test = mask.T
+
+
+
+
+
+
+
+
+
+
+
+
+
+# mask = process_image()
+# test = mask.T
 
 # print(pd.DataFrame(test))
-for col in test:
-    #
-    row = row.ne(row.shift()).cumsum()
-    row = (row != row[0]) & (row != row[row.shape[0] - 1])
-    row.astype(int).replace(1, 255)
-    # for row in col:
-    print(col)
+# for row in test:
+#     #
+#     row = pd.Series(row)
+#     row = row.ne(row.shift()).cumsum()
+#     row = (row != row[0]) & (row != row[row.shape[0] - 1])
+#     row.astype(int).replace(1, 255)
+#     # for row in col:
+#     print(row)
 
-row_orig = pd.Series([0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+# row_1 = pd.Series([0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+# row_2 = pd.Series([0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+# rows_np = np.array([row_1,row_2])
+# print(rows_np)
+#
+# functions.process_mask(rows_np.T)
+
+
+
+# full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
+# image_np = load_image_into_numpy_array(full_path)
+# min_p = (0, 0, 0)
+# max_p = (250, 250, 250)
+# mask = cv2.inRange(image_np, min_p, max_p)
+# mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB).T[0]
+# for i, row in enumerate(mask[0]):
+#     print(f"i {i}  row {row}")
+
+# i 287  row 0
+# i 288  row 0
+# i 289  row 0
+# i 290  row 255
+# i 291  row 255
+# i 292  row 255
+# i 293  row 255
+
+# i 413  row 255
+# i 414  row 255
+# i 415  row 0
+# i 416  row 255
+# i 417  row 0
+# i 418  row 0
+# i 419  row 0
+# i 420  row 255
+# i 421  row 255
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
