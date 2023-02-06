@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from utils import functions
+# from utils import functions
+from utils.functions import measure_length, process_mask
 
 parser = argparse.ArgumentParser()
 parser.add_argument("data_path", type=str, default="/home/kos/dev/popeyed_rod_measurer/data/", nargs='?',
@@ -104,12 +105,13 @@ def process_image(image='photo_1.jpg', color=True):
     cv2.waitKey(0)
 
     print('Start to prosess mask')
-    mask_processed = functions.process_mask(mask)
+    mask_processed = process_mask(mask)
     print('Complete!')
     cv2.imshow('mask_processed', mask_processed)
     cv2.waitKey(0)
 
-
+    print("Start to compute count of pixels.")
+    measure_length(mask_processed)
 
     # closing all open windows
     cv2.destroyAllWindows()
@@ -121,6 +123,7 @@ def process_image(image='photo_1.jpg', color=True):
     print('Done')
     return mask_processed
 
+
 mask = process_image()
 
 
@@ -129,11 +132,20 @@ mask = process_image()
 
 
 
-
-
-
-
-
+# full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
+# image_np = load_image_into_numpy_array(full_path)
+# min_p = (0, 0, 0)
+# max_p = (250, 250, 250)
+# mask = cv2.inRange(image_np, min_p, max_p)
+# mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB).T[0]
+# print(mask.astype(bool))
+#
+# all_pixels = mask.shape[0]*mask.shape[1]
+# non_zero = np.count_nonzero(mask)
+# avg_pixels = non_zero/mask.shape[0]
+# print(non_zero)
+# print(all_pixels)
+# print(avg_pixels)
 
 # mask = process_image()
 # test = mask.T
@@ -157,14 +169,7 @@ mask = process_image()
 
 
 
-# full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
-# image_np = load_image_into_numpy_array(full_path)
-# min_p = (0, 0, 0)
-# max_p = (250, 250, 250)
-# mask = cv2.inRange(image_np, min_p, max_p)
-# mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB).T[0]
-# for i, row in enumerate(mask[0]):
-#     print(f"i {i}  row {row}")
+
 
 # i 287  row 0
 # i 288  row 0
@@ -183,28 +188,6 @@ mask = process_image()
 # i 419  row 0
 # i 420  row 255
 # i 421  row 255
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # img = mask
