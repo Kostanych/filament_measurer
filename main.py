@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 # from utils import functions
-from utils.functions import measure_length, process_mask
+from utils.functions import measure_length, process_mask, prepare_borders, process_contours
 
 parser = argparse.ArgumentParser()
 parser.add_argument("data_path", type=str, default="/home/kos/dev/popeyed_rod_measurer/data/", nargs='?',
@@ -41,45 +41,6 @@ def load_image_into_numpy_array(path):
 
 
 def process_image(image='photo_1.jpg', color=True):
-    # while True:
-    #     full_path = opt.data_path + f"input/{image}"
-    #     # print('Running inference for {}... '.format(full_path), end='')
-    #     # _image = np.array(full_path).astype('float32')
-    #     # image_new = cv2.resize(_image, interpolation=cv2.INTER_CUBIC)
-    #
-    #     image_np = load_image_into_numpy_array(full_path)
-    #
-    #     if color:
-    #         image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-    #         min_p = (0, 0, 0)
-    #         max_p = (250, 250, 250)
-    #         mask = cv2.inRange(image_np, min_p, max_p)
-    #     else:
-    #         image_np = cv2.cvtColor(image_np, cv2.IMREAD_GRAYSCALE)
-    #         min_p = 0
-    #         max_p = 250
-    #         mask = cv2.inRange(image_np, min_p, max_p)
-    #     # image_np = image_np.astype(np.float32)
-    #     # print(image_np)
-    #
-    #     # image_np_with_detections = image_np.copy()
-    #
-    #     # #make mask(color)
-    #
-    #     # # make mask(grayscale)
-    #     # white = 255
-    #     # gray = 100
-    #     # # Finds dark pixels
-    #     # mask = cv2.inRange(image_grayscale, gray, white)
-    #
-    #     plt.figure()
-    #     cv2.imwrite(opt.data_path + 'output/result.jpeg', image_np)
-    #     # cv2.imshow('Output', image_np)
-    #     cv2.imshow('Output', mask)
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         # process_image(image_np)
-    #         break
-
     full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
     # print('Running inference for {}... '.format(full_path), end='')
     # _image = np.array(full_path).astype('float32')
@@ -105,7 +66,8 @@ def process_image(image='photo_1.jpg', color=True):
     cv2.waitKey(0)
 
     print('Start to prosess mask')
-    mask_processed = process_mask(mask)
+    mask_processed = prepare_borders(mask)
+    mask_processed = process_contours(mask_processed)
     print('Complete!')
     cv2.imshow('mask_processed', mask_processed)
     cv2.waitKey(0)

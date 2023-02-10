@@ -3,6 +3,66 @@ import pandas as pd
 import numpy as np
 
 
+def process_contours(mask):
+    # Find the contours of the objects in the image
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    # Find the index of the biggest contour
+    max_contour = 0
+    for i in range(len(contours)):
+        if cv2.contourArea(contours[i]) > cv2.contourArea(contours[max_contour]):
+            max_contour = i
+            # print(f"NEW MAX CONTOUR    {cv2.contourArea(contours[i])}")
+            # print(f"NEW MAX CONTOUR ID {max_contour}")
+    # # Create a mask with the biggest contour
+    contour_mask = np.zeros_like(mask)
+    cv2.fillPoly(contour_mask, pts=[contours[max_contour]], color=(255, 255, 255))
+    return contour_mask
+
+
+def keep_border_values(row):
+    """
+    Keep only border values in the list.
+    :param row: input list\Series
+    :return: processed 2d list
+    """
+    # to 1d
+    # row = [i[0] for i in row]
+    row = pd.Series(row)
+    row_shift = row.ne(row.shift()).cumsum().astype('uint8')
+    borders = [row_shift[0], row_shift[len(row_shift) - 1]]
+    # print(f"borders: {borders}")
+    # print(f'row: {np.array(row)}')
+
+    ind = row_shift[row_shift.isin(borders)].index
+
+    r = pd.Series(255, range(row.shape[0]))
+    r.iloc[ind] = 0
+
+    return r.astype('uint8')
+
+
+def prepare_borders(img: np.array):
+    """
+    Takes first and last columns of image and fill it.
+    :param img:
+    :return:
+    """
+    img = img.T
+    # print(img.shape)
+    first_row_n = 0
+    last_row_n = len(img) - 1
+    first_row = img[0]
+    last_row = img[last_row_n]
+    for (i, row) in zip([first_row_n, last_row_n], [first_row, last_row]):
+        # print(f"i   {i}")
+        # print(f"row {row}")
+        # print(img[i])
+        img[i] = keep_border_values(row)
+    # for n in img[0]:
+    #     print(n)
+    return img.T
+
+
 def measure_length(img: np.array):
     all_pixels = img.shape[0] * img.shape[1]
     non_zero = np.count_nonzero(img)
