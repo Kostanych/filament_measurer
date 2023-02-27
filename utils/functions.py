@@ -70,7 +70,7 @@ def measure_length(img: np.array):
     print(f"Count of non-zero pixels:  {non_zero}")
     print(f"Count of all pixels:       {all_pixels}")
     print(f"Average width in pixels:   {avg_pixels}")
-    pass
+    return avg_pixels
 
 
 def process_mask(img: np.array):

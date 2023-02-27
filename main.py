@@ -42,13 +42,14 @@ def load_image_into_numpy_array(path):
     return np.array(cv2.imread(path))
 
 
-def process_image(image='photo_1.jpg', color=True, verbose=0):
+def process_image(image, color=True, verbose=0):
     full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
     # print('Running inference for {}... '.format(full_path), end='')
     # _image = np.array(full_path).astype('float32')
     # image_new = cv2.resize(_image, interpolation=cv2.INTER_CUBIC)
 
-    image_np = load_image_into_numpy_array(full_path)
+    # image_np = load_image_into_numpy_array(full_path)
+    image_np = np.array(image)
 
     if color:
         image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
@@ -76,28 +77,27 @@ def process_image(image='photo_1.jpg', color=True, verbose=0):
         cv2.waitKey(0)
 
         print("Start to compute count of pixels.")
-        measure_length(mask_processed)
+        width = measure_length(mask_processed)
         print('Done')
     else:
         mask_processed = prepare_borders(mask)
         mask_processed = process_contours(mask_processed)
-        measure_length(mask_processed)
+        width = measure_length(mask_processed)
 
     # closing all open windows
     cv2.destroyAllWindows()
 
-    return mask_processed
+    return mask_processed, width
 
 
-mask = process_image(verbose=0)
-a = cv2.imwrite(opt.data_path + "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\output\\photo_1.jpg", mask)
-img = mask.copy()
-
-
-
+# mask, width = process_image(verbose=0)
+# a = cv2.imwrite(opt.data_path + "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\output\\photo_1.jpg", mask)
+# img = mask.copy()
 
 file_types = [("JPEG (*.jpg)", "*.jpg"),
               ("All files (*.*)", "*.*")]
+
+
 def show_image():
     layout = [
         [sg.Image(key="-IMAGE-")],
@@ -127,38 +127,81 @@ def show_image():
     window.close()
 
 
-show_image()
+# show_image()
 
 
-#
-import PySimpleGUI as sg
-import cv2
-def Play():
+def launch_ui():
+    sg.theme('DarkBrown4')
+    # define the window layout
+    layout = [[sg.Text('OpenCV Demo', size=(40, 1), justification='center', font='Helvetica 20')],
+              [sg.Image(filename='', key='image')],
+              [sg.Button('Play', size=(10, 1), font='Helvetica 14'),
+               sg.Button('Stop', size=(10, 1), font='Any 14'),
+               sg.Button('Exit', size=(10, 1), font='Helvetica 14'), ],
+              [sg.Text('Mean width: '), sg.Text('', size=(15, 1), key='width_value')]
+              ]
+
+    # create the window and show it without the plot
+    window = sg.Window('Demo Application - OpenCV Integration',
+                       layout, location=(800, 400))
+
+    # ---===--- Event LOOP Read and display frames, operate the GUI --- #
     video_name = sg.popup_get_file('Please enter a video name')
     cap = cv2.VideoCapture(video_name)
-    while(True):
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-         # Display the resulting frame
-        cv2.imshow('frame',frame)
-         # Press q to close the video windows before it ends
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows()
-layout = [[sg.Button('Play Video')]]
+    Play = False
 
+    while True:
+        event, values = window.read(timeout=20)
+        if event == 'Exit' or event == sg.WIN_CLOSED:
+            return
 
-window = sg.Window('Video Player', layout)
-while True:
-     event, values = window.read()
-     if event == 'Play Video':
-        Play()
-     elif event == sg.WIN_CLOSED:
-        window.close()
-        break
+        elif event == 'Play':
+            Play = True
 
+        elif event == 'Stop':
+            Play = False
+            img = np.full((480, 640), 255)
+            # this is faster, shorter and needs less includes
+            imgbytes = cv2.imencode('.png', img)[1].tobytes()
+            window['image'].update(data=imgbytes)
 
+        if Play:
+            ret, frame = cap.read()
+            if not ret:
+                print("Can't receive frame (stream end?). Exiting ...")
+                break
+            mask, width = process_image(image=frame, verbose=0)
+            imgbytes = cv2.imencode('.png', mask)[1].tobytes()  # ditto
+            window['image'].update(data=imgbytes)
 
+            window['width_value'].update(width)
 
+launch_ui()
 
+#
+# import PySimpleGUI as sg
+# import cv2
+# def Play():
+#     video_name = sg.popup_get_file('Please enter a video name')
+#     cap = cv2.VideoCapture(video_name)
+#     while(True):
+#         # Capture frame-by-frame
+#         ret, frame = cap.read()
+#          # Display the resulting frame
+#         cv2.imshow('frame',frame)
+#          # Press q to close the video windows before it ends
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+#     cap.release()
+#     cv2.destroyAllWindows()
+# layout = [[sg.Button('Play Video')]]
+#
+#
+# window = sg.Window('Video Player', layout)
+# while True:
+#      event, values = window.read()
+#      if event == 'Play Video':
+#         Play()
+#      elif event == sg.WIN_CLOSED:
+#         window.close()
+#         break
