@@ -3,6 +3,54 @@ import pandas as pd
 import numpy as np
 
 
+def process_image(image, color=True, verbose=0):
+    full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
+    # print('Running inference for {}... '.format(full_path), end='')
+    # _image = np.array(full_path).astype('float32')
+    # image_new = cv2.resize(_image, interpolation=cv2.INTER_CUBIC)
+
+    # image_np = load_image_into_numpy_array(full_path)
+    image_np = np.array(image)
+
+    if color:
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+        min_p = (0, 0, 0)
+        max_p = (250, 250, 250)
+        mask = cv2.inRange(image_np, min_p, max_p)
+    else:
+        image_np = cv2.cvtColor(image_np, cv2.IMREAD_GRAYSCALE)
+        min_p = 0
+        max_p = 250
+        mask = cv2.inRange(image_np, min_p, max_p)
+
+    if verbose:
+        cv2.imshow('image', image_np)
+        cv2.waitKey(0)
+
+        cv2.imshow('mask', mask)
+        cv2.waitKey(0)
+
+        print('Start to prosess mask')
+        mask_processed = prepare_borders(mask)
+        mask_processed = process_contours(mask_processed)
+        print('Complete!')
+        cv2.imshow('mask_processed', mask_processed)
+        cv2.waitKey(0)
+
+        print("Start to compute count of pixels.")
+        width = measure_length(mask_processed)
+        print('Done')
+    else:
+        mask_processed = prepare_borders(mask)
+        mask_processed = process_contours(mask_processed)
+        width = measure_length(mask_processed)
+
+    # closing all open windows
+    cv2.destroyAllWindows()
+
+    return mask_processed, width
+
+
 def process_contours(mask):
     # Find the contours of the objects in the image
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
