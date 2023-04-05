@@ -11,6 +11,7 @@ class Gui:
         self.show_every_n_frame = 1
         self.mask_or_image = 'image'
         self.play = False
+        self.filename = ''
 
         # Set blank start frame
         img = np.full((480, 640), 255)
@@ -31,9 +32,8 @@ class Gui:
         layout = [
             [sg.Text('Лупоглазый пруткомер', size=(40, 1), justification='center', font='Helvetica 20')],
             [sg.Image(filename='', key='image')],
-            [sg.Button('Load video'), sg.Button('Play'), sg.Button('Stop'), sg.Button('Exit'),
-             sg.Button('Calibrate'), sg.Button('Show 10% of frames'), sg.Button('Show 100% of frames'),
-             sg.Button('Mask/Image')],
+            [sg.Button('Load video'), sg.Button('Play'), sg.Button('Stop'), sg.Button('Calibrate'), sg.Button('Exit')],
+            [sg.Button('Show 10% of frames'), sg.Button('Show 100% of frames'), sg.Button('Mask/Image')],
             [sg.Text('Mean width in pixels: '), sg.Text('', size=(15, 1), key='width_value_pxl')],
             [sg.Text('Mean width in mm:     '), sg.Text('', size=(15, 1), key='width_value_mm')]
         ]
@@ -45,35 +45,34 @@ class Gui:
         cap = None
         # play = False
         fps = 30
-        # show_every_n_frame = 1
 
         # Main event loop
         while True:
             event, values = window.read(timeout=1000 // fps)  # Update the UI every frame
             # Set main image first frame of current video, or blank image if there was no video
-            if not self.play: window['image'].update(data=self.title_frame[1].tobytes())
-            # Set blank frame
-            # img = np.full((480, 640), 255)
-            # this is faster, shorter and needs less includes
-            # self.title_frame = cv2.imencode('.png', img)[1].tobytes()
-            # window['image'].update(data=self.title_frame)
-
+            if not self.play:
+                window['image'].update(data=self.title_frame[1].tobytes())
             if event == sg.WINDOW_CLOSED or event == 'Exit':
                 break
             elif event == 'Load video':
                 print('load video')
                 # Get the filename of the video
-                filename = sg.popup_get_file('Choose a video file')
-                if filename:
+                self.filename = sg.popup_get_file('Choose a video file')
+                if self.filename:
                     # Load the video
-                    cap = cv2.VideoCapture(filename)
+                    cap = cv2.VideoCapture(self.filename)
                     fps = int(cap.get(cv2.CAP_PROP_FPS))
                     # Set the initial frame
                     ret, frame = cap.read()
                     # Set the default title image from the 1st frame of the video
                     self.title_frame = cv2.imencode('.png', frame)
                     window['image'].update(data=self.title_frame[1].tobytes())
+
             elif event == 'Play':
+                print(f'cap  = {cap}')
+                print(f'play = {self.play}')
+                if (not self.play) & (self.filename != ''):
+                    cap = cv2.VideoCapture(self.filename)
                 self.play = True
 
             elif event == 'Stop':
@@ -96,10 +95,10 @@ class Gui:
 
             elif event == 'Calibrate':
                 # Get the filename of the video
-                filename = sg.popup_get_file('Choose a video file')
-                if filename:
+                self.filename = sg.popup_get_file('Choose a video file')
+                if self.filename:
                     # Load the video
-                    cap = cv2.VideoCapture(filename)
+                    cap = cv2.VideoCapture(self.filename)
                     fps = int(cap.get(cv2.CAP_PROP_FPS))
                     # Set the initial frame
                     ret, frame = cap.read()
@@ -116,14 +115,15 @@ class Gui:
                     source = frame
                 else:
                     source = mask
-                imgbytes = cv2.imencode('.png', source)[1].tobytes()  # ditto
+                imgbytes = cv2.imencode('.png', source)[1].tobytes()
                 window['image'].update(data=imgbytes)
                 calib_multiplier = self.opt.calib_width_mm / self.width
                 print(f"calib_multiplier: {calib_multiplier}")
                 print(f"opt.calib_width_mm : {self.opt.calib_width_mm}")
                 print(f"width: {self.width}")
 
-            if cap is not None and self.play:
+            # Start the video
+            if cap and self.play:
                 # Read the next frame
                 ret, frame = cap.read()
                 if ret:
@@ -136,15 +136,14 @@ class Gui:
                             source = mask
 
                         window['image'].update(data=cv2.imencode('.png', source)[1].tobytes())
-                        window['width_value_pxl'].update(self.width)
-                        window['width_value_mm'].update(self.width * calib_multiplier)
+                        window['width_value_pxl'].update(round(self.width, 0))
+                        window['width_value_mm'].update(round(self.width * calib_multiplier, 3))
                 else:
                     # End of video reached
                     cap.release()
                     cap = None
                     self.play = False
                     window['image'].update(filename='')
-
 
         # Clean up
         if cap is not None:
