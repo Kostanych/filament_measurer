@@ -5,3 +5,4 @@ opencv-python~=4.7.0.68
 matplotlib~=3.6.3
 PySimpleGUI==4.60.4
 Pillow==9.4.0
+scikit-image==0.20.0

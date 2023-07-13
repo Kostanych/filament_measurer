@@ -125,6 +125,7 @@ else:
     mask = cv2.inRange(image_np, min_p, max_p)
 
 
-prepare_contour(mask)
+# prepare_contour(mask)
+
 
 

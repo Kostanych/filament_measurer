@@ -1,3 +1,5 @@
+import argparse
+
 import cv2
 import PySimpleGUI as sg
 import numpy as np
@@ -32,7 +34,9 @@ class Gui:
         layout = [
             [sg.Text('Лупоглазый пруткомер', size=(40, 1), justification='center', font='Helvetica 20')],
             [sg.Image(filename='', key='image')],
-            [sg.Button('Load video'), sg.Button('Play'), sg.Button('Stop'), sg.Button('Calibrate'), sg.Button('Exit')],
+            [sg.Button('Select calibration video')],
+            [sg.Button('Change multiplier'), sg.InputText(size=(3, 1), key='calibration_input'), sg.Text(f'{self.opt.calib_width_mm}', size=(2, 1), key = 'calibration_value')],
+            [sg.Button('Load video'), sg.Button('Play'), sg.Button('Stop'), sg.Button('Exit')],
             [sg.Button('Show 10% of frames'), sg.Button('Show 100% of frames'), sg.Button('Mask/Image')],
             [sg.Text('Mean width in pixels: '), sg.Text('', size=(15, 1), key='width_value_pxl')],
             [sg.Text('Mean width in mm:     '), sg.Text('', size=(15, 1), key='width_value_mm')]
@@ -93,7 +97,12 @@ class Gui:
             elif event == 'Mask/Image':
                 self.mask_or_image = self.switch_param()
 
-            elif event == 'Calibrate':
+            elif event == 'Change multiplier':
+                calibration_value = values['calibration_input']
+                self.opt.calib_width_mm = calibration_value
+                window['calibration_value'].update(calibration_value)
+
+            elif event == 'Select calibration video':
                 # Get the filename of the video
                 self.filename = sg.popup_get_file('Choose a video file')
                 if self.filename:
@@ -106,7 +115,11 @@ class Gui:
                     self.title_frame = cv2.imencode('.png', frame)
                     window['image'].update(data=self.title_frame[1].tobytes())
 
-                ret, frame = cap.read()
+                try:
+                    ret, frame = cap.read()
+                except Exception as e:
+                    print(repr(e))
+                    break
                 if not ret:
                     print("Can't receive frame (stream end?). Exiting ...")
                     break
@@ -150,3 +163,6 @@ class Gui:
             cap.release()
         # self.eof = True
         window.close()
+
+
+

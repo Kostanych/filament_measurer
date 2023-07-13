@@ -2,6 +2,31 @@ import cv2
 import pandas as pd
 import numpy as np
 
+from datetime import datetime
+import skimage
+
+from skimage import measure
+from skimage.draw import polygon2mask
+from skimage.io import imread
+from skimage.morphology import convex_hull_image
+from skimage.util import invert
+
+
+def load_image_into_numpy_array(path):
+    """Load an image from file into a numpy array.
+
+    Puts image into numpy array to feed into tensorflow graph.
+    Note that by convention we put it into a numpy array with shape
+    (height, width, channels), where channels=3 for RGB.
+
+    Args:
+      path: the file path to the image
+
+    Returns:
+      uint8 numpy array with shape (img_height, img_width, 3)
+    """
+    return np.array(cv2.imread(path))
+
 
 def process_image(image, color=True, verbose=0):
     full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
@@ -14,14 +39,36 @@ def process_image(image, color=True, verbose=0):
 
     if color:
         image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        min_p = (0, 0, 0)
-        max_p = (250, 250, 250)
+        min_p = (10, 10, 10)
+        max_p = (240, 240, 240)
         mask = cv2.inRange(image_np, min_p, max_p)
     else:
         image_np = cv2.cvtColor(image_np, cv2.IMREAD_GRAYSCALE)
         min_p = 0
         max_p = 250
         mask = cv2.inRange(image_np, min_p, max_p)
+
+
+
+    # full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
+    # image_np = load_image_into_numpy_array(full_path)
+    #
+    # image = skimage.color.rgb2gray(image)
+    # image_colour = image
+    # image[:, 0] = 1
+    # image[:, -1] = 1
+    #
+    # # Find contours at a constant value of 0.8
+    # contours = measure.find_contours(image, 0.8)
+    #
+    # # Find largest contour
+    # largest_contour = max(contours, key=lambda contour: len(contour))
+    # print('Found max contour')
+    #
+    # # Make mask
+    # mask = polygon2mask(image.shape, largest_contour)
+    # mask = invert(convex_hull_image(mask))
+    # mask_processed = mask.astype(float)
 
     if verbose:
         cv2.imshow('image', image_np)
@@ -30,7 +77,7 @@ def process_image(image, color=True, verbose=0):
         cv2.imshow('mask', mask)
         cv2.waitKey(0)
 
-        print('Start to prosess mask')
+        # print('Start to prosess mask')
         mask_processed = prepare_borders(mask)
         mask_processed = process_contours(mask_processed)
         print('Complete!')
@@ -95,20 +142,10 @@ def prepare_borders(img: np.array):
     :param img:
     :return:
     """
-    img = img.T
-    # print(img.shape)
-    first_row_n = 0
-    last_row_n = len(img) - 1
-    first_row = img[0]
-    last_row = img[last_row_n]
-    for (i, row) in zip([first_row_n, last_row_n], [first_row, last_row]):
-        # print(f"i   {i}")
-        # print(f"row {row}")
-        # print(img[i])
-        img[i] = keep_border_values(row)
-    # for n in img[0]:
-    #     print(n)
-    return img.T
+
+    img[:, 0] = 1
+    img[:, -1] = 1
+    return img
 
 
 def measure_length(img: np.array):
@@ -227,3 +264,5 @@ def krutilki_grayscale(filepath):
 
 
 def nothing(args): pass
+
+# krutilki("C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg")
