@@ -3,7 +3,7 @@ import argparse
 import cv2
 import PySimpleGUI as sg
 import numpy as np
-import utils.functions as fn
+import src.image_processor as fn
 
 
 class Gui:

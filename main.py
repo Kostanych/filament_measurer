@@ -1,9 +1,6 @@
 import argparse
 import io
-import sys
 
-import cv2
-import numpy as np
 import PySimpleGUI as sg
 from PySimpleGUI import *
 from PIL import Image
@@ -27,10 +24,6 @@ except Exception as e:
 
 data_path = opt.data_path
 full_path = opt.data_path + f"input/photo_1.jpg"
-
-
-
-
 
 file_types = [("JPEG (*.jpg)", "*.jpg"),
               ("All files (*.*)", "*.*")]
@@ -63,10 +56,6 @@ def show_image():
                 window["-IMAGE-"].update(data=bio.getvalue())
 
     window.close()
-
-
-def calibrate_width():
-    pass
 
 
 g = gui.Gui(opt)
