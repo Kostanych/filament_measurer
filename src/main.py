@@ -5,7 +5,7 @@ import PySimpleGUI as sg
 from PySimpleGUI import *
 from PIL import Image
 
-import gui
+from src import gui
 
 parser = argparse.ArgumentParser()
 parser.add_argument("data_path", type=str, default="/home/kos/dev/filament_measurer/data/", nargs='?',
