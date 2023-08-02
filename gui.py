@@ -43,7 +43,7 @@ class Gui:
         ]
 
         # Create the UI window
-        window = sg.Window('Video Player', layout)
+        window = sg.Window('Молодец, нашёл', layout)
 
         # Initialize the video player
         cap = None
@@ -123,7 +123,7 @@ class Gui:
                 if not ret:
                     print("Can't receive frame (stream end?). Exiting ...")
                     break
-                mask, self.width = fn.process_image(image=frame, verbose=0)
+                mask, self.width = fn.process_image(frame=frame, verbose=0)
                 if self.mask_or_image == 'image':
                     source = frame
                 else:
@@ -140,7 +140,7 @@ class Gui:
                 # Read the next frame
                 ret, frame = cap.read()
                 if ret:
-                    mask, self.width = fn.process_image(image=frame, verbose=0)
+                    mask, self.width = fn.process_image(frame=frame, verbose=0)
                     # Show the frame if needed
                     if cap.get(cv2.CAP_PROP_POS_FRAMES) % self.show_every_n_frame == 0:
                         if self.mask_or_image == 'image':

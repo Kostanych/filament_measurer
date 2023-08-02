@@ -8,7 +8,7 @@ from PIL import Image
 import gui
 
 parser = argparse.ArgumentParser()
-parser.add_argument("data_path", type=str, default="/home/kos/dev/popeyed_rod_measurer/data/", nargs='?',
+parser.add_argument("data_path", type=str, default="/home/kos/dev/filament_measurer/data/", nargs='?',
                     help="Name of the folder with the data")
 parser.add_argument("calibration", type=str, default=False, nargs='?',
                     help="If this video for the calibration")

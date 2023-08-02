@@ -1,6 +1,13 @@
 ## The .gitignore file specifies things that git should ignore. 
 ## This default template includes entries for R, Python and visual studio
 
+.idea
+skimage_test.py
+test2.py
+test_3_streamlit.py
+
+
+
 ##
 ## Add custom entries below here.
 ##

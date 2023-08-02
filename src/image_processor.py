@@ -21,164 +21,54 @@ def load_image_into_numpy_array(path):
     return np.array(cv2.imread(path))
 
 
-def process_image(image, color=True, verbose=0):
-    image_np = np.array(image)
+def process_image(frame, verbose=0):
+    """
+    Take one frame and process it. Return masked frame and mean width of the filament
+    Args:
+        frame:
+            image frame
+        verbose:
+            If True, print more information
 
-    if color:
-        image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        min_p = (10, 10, 10)
-        max_p = (240, 240, 240)
-        mask = cv2.inRange(image_np, min_p, max_p)
-    else:
-        image_np = cv2.cvtColor(image_np, cv2.IMREAD_GRAYSCALE)
-        min_p = 0
-        max_p = 250
-        mask = cv2.inRange(image_np, min_p, max_p)
+    Returns:
+        Masked frame and mean width of the filament
+    """
+    image_np = np.array(frame)
 
-
-
-    # full_path = "C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg"
-    # image_np = load_image_into_numpy_array(full_path)
-    #
-    # image = skimage.color.rgb2gray(image)
-    # image_colour = image
-    # image[:, 0] = 1
-    # image[:, -1] = 1
-    #
-    # # Find contours at a constant value of 0.8
-    # contours = measure.find_contours(image, 0.8)
-    #
-    # # Find largest contour
-    # largest_contour = max(contours, key=lambda contour: len(contour))
-    # print('Found max contour')
-    #
-    # # Make mask
-    # mask = polygon2mask(image.shape, largest_contour)
-    # mask = invert(convex_hull_image(mask))
-    # mask_processed = mask.astype(float)
+    # Example processing: Convert to grayscale and apply thresholding
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, binary_frame = cv2.threshold(gray_frame, 127, 255, cv2.THRESH_BINARY)
 
     if verbose:
         cv2.imshow('image', image_np)
         cv2.waitKey(0)
 
-        cv2.imshow('mask', mask)
+        cv2.imshow('mask', binary_frame)
         cv2.waitKey(0)
 
-        # print('Start to prosess mask')
-        mask_processed = prepare_borders(mask)
-        mask_processed = process_contours(mask_processed)
-        print('Complete!')
-        cv2.imshow('mask_processed', mask_processed)
-        cv2.waitKey(0)
+    # Measure filament thickness in pixels
+    # by averaging the number of pixels per vertical line
+    filament_thickness = np.mean(np.sum(binary_frame == 0, axis=0))
 
-        print("Start to compute count of pixels.")
-        width = measure_length(mask_processed)
-        print('Done')
-    else:
-        mask_processed = prepare_borders(mask)
-        mask_processed = process_contours(mask_processed)
-        width = measure_length(mask_processed)
+    # Output the measured thickness for the current frame
+    print("Filament thickness on the current frame: {} pixels".format(
+        filament_thickness))
+
+    # Display the processed frame with information about the thickness
+    cv2.putText(frame,
+                "Filament Thickness: {:.2f} pixels".format(filament_thickness),
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(binary_frame,
+                "Filament Thickness: {:.2f} pixels".format(filament_thickness),
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     # closing all open windows
     cv2.destroyAllWindows()
 
-    return mask_processed, width
-
-
-def keep_border_values(row):
-    """
-    Keep only border values in the list.
-    :param row: input list\Series
-    :return: processed 2d list
-    """
-    # to 1d
-    # row = [i[0] for i in row]
-    row = pd.Series(row)
-    row_shift = row.ne(row.shift()).cumsum().astype('uint8')
-    borders = [row_shift[0], row_shift[len(row_shift) - 1]]
-    # print(f"borders: {borders}")
-    # print(f'row: {np.array(row)}')
-
-    ind = row_shift[row_shift.isin(borders)].index
-
-    r = pd.Series(255, range(row.shape[0]))
-    r.iloc[ind] = 0
-
-    return r.astype('uint8')
-
-
-def prepare_borders(img: np.array):
-    """
-    Takes first and last columns of image and fill it.
-    :param img:
-    :return:
-    """
-
-    img[:, 0] = 1
-    img[:, -1] = 1
-    return img
-
-
-
-
-
-def krutilki(filepath):
-    # создаем окно для отображения результата и бегунки
-    cv2.namedWindow("setup")
-    cv2.createTrackbar("b1", "setup", 0, 255, nothing)
-    cv2.createTrackbar("g1", "setup", 0, 255, nothing)
-    cv2.createTrackbar("r1", "setup", 0, 255, nothing)
-    cv2.createTrackbar("b2", "setup", 255, 255, nothing)
-    cv2.createTrackbar("g2", "setup", 255, 255, nothing)
-    cv2.createTrackbar("r2", "setup", 255, 255, nothing)
-
-    img = cv2.imread(filepath)  # загрузка изображения
-
-    while True:
-        r1 = cv2.getTrackbarPos('r1', 'setup')
-        g1 = cv2.getTrackbarPos('g1', 'setup')
-        b1 = cv2.getTrackbarPos('b1', 'setup')
-        r2 = cv2.getTrackbarPos('r2', 'setup')
-        g2 = cv2.getTrackbarPos('g2', 'setup')
-        b2 = cv2.getTrackbarPos('b2', 'setup')
-        # собираем значения из бегунков в множества
-        min_p = (g1, b1, r1)
-        max_p = (g2, b2, r2)
-        # применяем фильтр, делаем бинаризацию
-        img_g = cv2.inRange(img, min_p, max_p)
-
-        cv2.imshow('img', img_g)
-
-        if cv2.waitKey(33) & 0xFF == ord('q'):
-            break
-
-    cv2.destroyAllWindows()
-
-
-def krutilki_grayscale(filepath):
-    cv2.namedWindow("setup")
-    cv2.createTrackbar("g1", "setup", 0, 255, nothing)
-    cv2.createTrackbar("g2", "setup", 0, 255, nothing)
-
-    img = cv2.imread(filepath)  # загрузка изображения
-
-    while True:
-        g1 = cv2.getTrackbarPos('g1', 'setup')
-        g2 = cv2.getTrackbarPos('g2', 'setup')
-
-        # собираем значения из бегунков в множества
-        min_p = (g1)
-        max_p = (g2)
-        # применяем фильтр, делаем бинаризацию
-        img_g = cv2.inRange(img, min_p, max_p)
-
-        cv2.imshow('img', img_g)
-
-        if cv2.waitKey(33) & 0xFF == ord('q'):
-            break
-    cv2.destroyAllWindows()
+    return binary_frame, filament_thickness
 
 
 def nothing(args): pass
 
-# krutilki("C:\\Users\\KOS\\Documents\\dev\\popeyed_rod_measurer\\data\\input\\photo_1.jpg")
