@@ -119,25 +119,17 @@ class Gui:
                     self.title_frame = cv2.imencode('.png', frame)
                     window['image'].update(data=self.title_frame[1].tobytes())
 
-                try:
-                    ret, frame = cap.read()
-                except Exception as e:
-                    print(repr(e))
-                    break
-                if not ret:
-                    print("Can't receive frame (stream end?). Exiting ...")
-                    break
-                mask, self.width = fn.process_image(frame=frame, verbose=0)
-                if self.mask_or_image == 'image':
-                    source = frame
-                else:
-                    source = mask
-                imgbytes = cv2.imencode('.png', source)[1].tobytes()
-                window['image'].update(data=imgbytes)
-                calib_multiplier = self.opt.calib_width_mm / self.width
-                print(f"calib_multiplier: {calib_multiplier}")
-                print(f"opt.calib_width_mm : {self.opt.calib_width_mm}")
-                print(f"width: {self.width}")
+                    mask, self.width = fn.process_image(frame=frame, verbose=0)
+                    if self.mask_or_image == 'image':
+                        source = frame
+                    else:
+                        source = mask
+                    imgbytes = cv2.imencode('.png', source)[1].tobytes()
+                    window['image'].update(data=imgbytes)
+                    calib_multiplier = self.opt.calib_width_mm / self.width
+                    print(f"calib_multiplier: {calib_multiplier}")
+                    print(f"opt.calib_width_mm : {self.opt.calib_width_mm}")
+                    print(f"width: {self.width}")
 
             # Start the video
             if cap and self.play:
