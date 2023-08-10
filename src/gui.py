@@ -99,8 +99,12 @@ class Gui:
 
             elif event == 'Change multiplier':
                 calibration_value = values['calibration_input']
-                self.opt.calib_width_mm = calibration_value
-                window['calibration_value'].update(calibration_value)
+                try:
+                    calibration_value = float(calibration_value)
+                    self.opt.calib_width_mm = calibration_value
+                    window['calibration_value'].update(calibration_value)
+                except Exception:
+                    print("It must be 'float' datatype")
 
             elif event == 'Select calibration video':
                 # Get the filename of the video

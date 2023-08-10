@@ -471,3 +471,5 @@ OpenCover/
 junit/
 /data/output/
 /.ipynb_checkpoints/
+/src/test.py
+/data/input/v2_hz.avi
