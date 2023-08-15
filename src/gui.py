@@ -3,7 +3,7 @@ import argparse
 import cv2
 import PySimpleGUI as sg
 import numpy as np
-import src.image_processor as fn
+import image_processor as fn
 
 
 class Gui:
@@ -35,19 +35,30 @@ class Gui:
             [sg.Text('Лупоглазый пруткомер', size=(40, 1), justification='center', font='Helvetica 20')],
             [sg.Image(filename='', key='image')],
             [sg.Button('Select calibration video')],
-            [sg.Button('Change multiplier'), sg.InputText(size=(3, 1), key='calibration_input'), sg.Text(f'{self.opt.calib_width_mm}', size=(2, 1), key = 'calibration_value')],
-            [sg.Button('Load video'), sg.Button('Play'), sg.Button('Stop'), sg.Button('Exit')],
+            [sg.Button('Change calibration width'),
+             sg.InputText(size=(3, 1), key='calibration_input'),
+             sg.Text(f'{self.opt.calib_width_mm}', size=(2, 1), key='calibration_value')
+             ],
+            [sg.Combo(['File', 'USB device'], default_value='File', key='input_source'),
+             sg.Button('Load video'),
+             sg.Button('Play'),
+             sg.Button('Stop'),
+             ],
             [sg.Button('Show 10% of frames'), sg.Button('Show 100% of frames'), sg.Button('Mask/Image')],
+            [sg.Button('Exit')],
             [sg.Text('Mean width in pixels: '), sg.Text('', size=(15, 1), key='width_value_pxl')],
             [sg.Text('Mean width in mm:     '), sg.Text('', size=(15, 1), key='width_value_mm')]
         ]
 
-        # Create the UI window
-        window = sg.Window('Молодец, нашёл', layout)
+        # Set the initial window location (x, y coordinates)
+        window_location = (100, 100)  # Adjust these coordinates as needed
 
-        # Initialize the video player
+        # Create the UI window
+        window = sg.Window('Молодец, нашёл', layout, location=window_location)
+
+        # Initialize variables
         cap = None
-        # play = False
+        show_play_button = True
         fps = 30
 
         # Main event loop
@@ -58,7 +69,7 @@ class Gui:
                 window['image'].update(data=self.title_frame[1].tobytes())
             if event == sg.WINDOW_CLOSED or event == 'Exit':
                 break
-            elif event == 'Load video':
+            elif (event == 'Load video') & (values['input_source'] == 'File'):
                 print('load video')
                 # Get the filename of the video
                 self.filename = sg.popup_get_file('Choose a video file')
@@ -75,8 +86,10 @@ class Gui:
             elif event == 'Play':
                 print(f'cap  = {cap}')
                 print(f'play = {self.play}')
-                if (not self.play) & (self.filename != ''):
+                if (not self.play) & (self.filename != '') & (values['input_source'] == 'File'):
                     cap = cv2.VideoCapture(self.filename)
+                elif values['input_source'] == 'USB device':
+                    cap = cv2.VideoCapture(0)
                 self.play = True
 
             elif event == 'Stop':
@@ -85,6 +98,7 @@ class Gui:
                 # this is faster, shorter and needs less includes
                 imgbytes = cv2.imencode('.png', img)[1].tobytes()
                 window['image'].update(data=imgbytes)
+                show_play_button = True
 
             elif event == 'Show 10% of frames':
                 # Show every 10th frame
@@ -135,6 +149,7 @@ class Gui:
             if cap and self.play:
                 # Read the next frame
                 ret, frame = cap.read()
+                show_play_button = False
                 if ret:
                     mask, self.width = fn.process_image(frame=frame, verbose=0)
                     # Show the frame if needed
@@ -151,8 +166,17 @@ class Gui:
                     # End of video reached
                     cap.release()
                     cap = None
+                    show_play_button = True
                     self.play = False
                     window['image'].update(filename='')
+
+            # Update button visibility based on conditions
+            if show_play_button is True:
+                window['Play'].update(visible=True)
+                window['Stop'].update(visible=False)
+            else:
+                window['Play'].update(visible=False)
+                window['Stop'].update(visible=True)
 
         # Clean up
         if cap is not None:
