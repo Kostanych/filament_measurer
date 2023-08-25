@@ -37,7 +37,7 @@ class Gui:
         layout = [
             [sg.Text('Лупоглазый пруткомер', size=(40, 1), justification='center', font='Helvetica 20')],
             [sg.Image(filename='', key='image')],
-            [sg.Button('Select calibration video')],
+            # [sg.Button('Select calibration video')],
             [sg.Button('Change calibration width'),
              sg.InputText(size=(3, 1), key='calibration_input'),
              sg.Text(f'{self.opt.calib_width_mm}', size=(2, 1), key='calibration_value')
@@ -84,7 +84,10 @@ class Gui:
                     ret, frame = cap.read()
                     # Set the default title image from the 1st frame of the video
                     self.title_frame = cv2.imencode('.png', frame)
+                    # Set width different from the zero
+                    _, self.width = fn.process_image(frame=frame, verbose=0)
                     window['image'].update(data=self.title_frame[1].tobytes())
+                    calib_multiplier = self.change_calibration_multiplier()
 
             elif event == 'Play':
                 print(f'cap  = {cap}')
@@ -121,33 +124,35 @@ class Gui:
                     self.opt.calib_width_mm = calibration_value
                     window['calibration_value'].update(calibration_value)
                     calib_multiplier = self.change_calibration_multiplier()
+                except ZeroDivisionError:
+                    logger.info('You should select video first!')
                 except Exception:
                     print("It must be 'float' datatype")
 
-            elif event == 'Select calibration video':
-                # Get the filename of the video
-                self.filename = sg.popup_get_file('Choose a video file')
-                if self.filename:
-                    # Load the video
-                    cap = cv2.VideoCapture(self.filename)
-                    fps = int(cap.get(cv2.CAP_PROP_FPS))
-                    # Set the initial frame
-                    ret, frame = cap.read()
-                    # Set the default title image from the 1st frame of the video
-                    self.title_frame = cv2.imencode('.png', frame)
-                    window['image'].update(data=self.title_frame[1].tobytes())
-
-                    mask, self.width = fn.process_image(frame=frame, verbose=0)
-                    if self.mask_or_image == 'image':
-                        source = frame
-                    else:
-                        source = mask
-                    imgbytes = cv2.imencode('.png', source)[1].tobytes()
-                    window['image'].update(data=imgbytes)
-                    calib_multiplier = self.change_calibration_multiplier()
-
-                    print(f"opt.calib_width_mm : {self.opt.calib_width_mm}")
-                    print(f"width: {self.width}")
+            # elif event == 'Select calibration video':
+            #     # Get the filename of the video
+            #     self.filename = sg.popup_get_file('Choose a video file')
+            #     if self.filename:
+            #         # Load the video
+            #         cap = cv2.VideoCapture(self.filename)
+            #         fps = int(cap.get(cv2.CAP_PROP_FPS))
+            #         # Set the initial frame
+            #         ret, frame = cap.read()
+            #         # Set the default title image from the 1st frame of the video
+            #         self.title_frame = cv2.imencode('.png', frame)
+            #         window['image'].update(data=self.title_frame[1].tobytes())
+            #
+            #         mask, self.width = fn.process_image(frame=frame, verbose=0)
+            #         if self.mask_or_image == 'image':
+            #             source = frame
+            #         else:
+            #             source = mask
+            #         imgbytes = cv2.imencode('.png', source)[1].tobytes()
+            #         window['image'].update(data=imgbytes)
+            #         calib_multiplier = self.change_calibration_multiplier()
+            #
+            #         print(f"opt.calib_width_mm : {self.opt.calib_width_mm}")
+            #         print(f"width: {self.width}")
 
             # Start the video
             if cap and self.play:
