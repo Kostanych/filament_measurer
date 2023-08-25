@@ -1,7 +1,9 @@
 import cv2
 import numpy as np
 
+from src.utils import get_logger
 
+logger = get_logger('IMAGE PROCESSOR')
 def load_image_into_numpy_array(path):
     """Load an image from file into a numpy array.
 
@@ -48,7 +50,7 @@ def process_image(frame, verbose=0):
     filament_thickness = np.mean(np.sum(binary_frame == 0, axis=0))
 
     # Output the measured thickness for the current frame
-    print("Filament thickness on the current frame: {} pixels".format(
+    logger.debug("Filament thickness on the current frame: {} pixels".format(
         filament_thickness))
 
     # Display the processed frame with information about the thickness
