@@ -1,9 +1,12 @@
 import cv2
 import numpy as np
+from scipy.optimize import curve_fit
 
 from src.utils import get_logger
 
 logger = get_logger('IMAGE PROCESSOR')
+
+
 def load_image_into_numpy_array(path):
     """Load an image from file into a numpy array.
 
@@ -57,11 +60,11 @@ def process_image(frame, verbose=0):
     cv2.putText(frame,
                 "Filament Thickness: {:.2f} pixels".format(filament_thickness),
                 (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     cv2.putText(binary_frame,
                 "Filament Thickness: {:.2f} pixels".format(filament_thickness),
                 (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     # closing all open windows
     cv2.destroyAllWindows()
@@ -69,5 +72,46 @@ def process_image(frame, verbose=0):
     return binary_frame, filament_thickness
 
 
-def nothing(args): pass
+def line_func(x, a, b):
+    """ Just line function """
+    return a * x + b
 
+
+def measure_angle(mask):
+    """ Compute angle on the filament """
+    y_coords, x_coords = np.where(mask == 0)
+    if len(x_coords) < 2:
+        return None
+
+    params, _ = curve_fit(line_func, x_coords, y_coords)
+    angle = np.arctan(params[0]) * 180.0 / np.pi
+
+    return angle
+
+
+def draw_angle_line(frame, mask):
+    """ Draw angle line """
+    angle = measure_angle(mask)
+    if angle is not None:
+        angle_text = f"Angle: {angle:.2f} degrees"
+        cv2.putText(frame, angle_text, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                    (0, 0, 255), 2)
+
+        y_coords, x_coords = np.where(mask == 0)
+        if len(x_coords) >= 2:
+            params, _ = curve_fit(line_func, x_coords, y_coords)
+            y1 = int(line_func(0, *params))
+            y2 = int(line_func(frame.shape[1], *params))
+            cv2.line(frame, (0, y1), (frame.shape[1], y2), (0, 0, 255), 2)
+
+    return frame
+
+
+def draw_fps(frame, cap):
+    """ Draw FPS """
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps_text = f"FPS: {fps:.1f}"
+    cv2.putText(frame, fps_text, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                (255, 0, 0), 2)
+
+    return frame
