@@ -4,6 +4,9 @@ import cv2
 import PySimpleGUI as sg
 import numpy as np
 import image_processor as fn
+from src.utils import get_logger
+
+logger = get_logger("DUI")
 
 
 class Gui:
@@ -111,12 +114,13 @@ class Gui:
             elif event == 'Mask/Image':
                 self.mask_or_image = self.switch_param()
 
-            elif event == 'Change multiplier':
+            elif event == 'Change calibration width':
                 calibration_value = values['calibration_input']
                 try:
                     calibration_value = float(calibration_value)
                     self.opt.calib_width_mm = calibration_value
                     window['calibration_value'].update(calibration_value)
+                    calib_multiplier = self.change_calibration_multiplier()
                 except Exception:
                     print("It must be 'float' datatype")
 
@@ -140,8 +144,8 @@ class Gui:
                         source = mask
                     imgbytes = cv2.imencode('.png', source)[1].tobytes()
                     window['image'].update(data=imgbytes)
-                    calib_multiplier = self.opt.calib_width_mm / self.width
-                    print(f"calib_multiplier: {calib_multiplier}")
+                    calib_multiplier = self.change_calibration_multiplier()
+
                     print(f"opt.calib_width_mm : {self.opt.calib_width_mm}")
                     print(f"width: {self.width}")
 
@@ -184,5 +188,9 @@ class Gui:
         # self.eof = True
         window.close()
 
-
+    def change_calibration_multiplier(self):
+        """ The calibration multiplier is used to estimate the current width """
+        calib_multiplier = self.opt.calib_width_mm / self.width
+        logger.info(f"Calibration multiplier: {calib_multiplier}")
+        return calib_multiplier
 
