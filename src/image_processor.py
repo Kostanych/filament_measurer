@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from scipy.optimize import curve_fit
 
-from src.utils import get_logger
+from utils import get_logger
 
 logger = get_logger('IMAGE PROCESSOR')
 
@@ -104,7 +104,7 @@ def draw_angle_line(frame, mask):
             y2 = int(line_func(frame.shape[1], *params))
             cv2.line(frame, (0, y1), (frame.shape[1], y2), (0, 0, 255), 2)
 
-    return frame
+    return frame, angle
 
 
 def draw_fps(frame, cap):
@@ -115,3 +115,13 @@ def draw_fps(frame, cap):
                 (255, 0, 0), 2)
 
     return frame
+
+
+def calculate_pixel_multiplier(angle):
+    """ Calculating the multiplier for a tilted filament """
+    angle_radians = np.radians(angle)
+    cos_angle = np.cos(angle_radians)
+    pixel_multiplier = cos_angle if cos_angle != 0 else 1
+    return pixel_multiplier
+
+

@@ -16,7 +16,6 @@ class Gui:
         self.mask_or_image = 'image'
         self.play = False
         self.filename = ''
-        self.angle = 0
 
         # Set blank start frame
         img = np.full((480, 640), 255)
@@ -31,7 +30,7 @@ class Gui:
     def run_gui(self):
         # sg.theme('DarkBrown4')
         sg.theme('DarkAmber')
-        calib_multiplier = 0
+        width_multiplier_calibrated = 0
 
         # Define the layout of the UI
         layout = [
@@ -49,11 +48,14 @@ class Gui:
              ],
             [sg.Button('Show 10% of frames'), sg.Button('Show 100% of frames'), sg.Button('Mask/Image')],
             [sg.Button('Exit')],
-            [sg.Text('Mean width in pixels: '), sg.Text('', size=(10, 1), key='width_value_pxl'),
-             sg.Text('* Angle: '), sg.Text('N/A', size=(10, 1), key='width_value_pxl_angle'),
+            [#sg.Text('Mean width in pixels: '), sg.Text('', size=(10, 1), key='width_value_pxl'),
+             sg.Text('Mean width in pixels: '), sg.Text('N/A', size=(10, 1), key='width_value_pxl_angle'),
              ],
-            [sg.Text('Mean width in mm:    '), sg.Text('', size=(10, 1), key='width_value_mm'),
-             sg.Text('* Angle: '), sg.Text('N/A', size=(10, 1), key='width_value_mm_angle'),
+            [#sg.Text('Mean width in mm:    '), sg.Text('', size=(10, 1), key='width_value_mm'),
+             sg.Text('Mean width in mm:    '), sg.Text('N/A', size=(10, 1), key='width_value_mm_angle'),
+             ],
+            [
+             sg.Text('angle_multiplier: '), sg.Text('N/A', size=(10, 1), key='angle_multiplier'),
              ]
         ]
 
@@ -91,7 +93,7 @@ class Gui:
                     # Set width different from the zero
                     _, self.width = process_image(frame=frame, verbose=0)
                     window['image'].update(data=self.title_frame[1].tobytes())
-                    calib_multiplier = self.change_calibration_multiplier()
+                    width_multiplier_calibrated = self.change_calibration_multiplier()
 
             elif event == 'Play':
                 logger.info(f'cap  = {cap}')
@@ -127,7 +129,7 @@ class Gui:
                     calibration_value = float(calibration_value)
                     self.opt.calib_width_mm = calibration_value
                     window['calibration_value'].update(calibration_value)
-                    calib_multiplier = self.change_calibration_multiplier()
+                    width_multiplier_calibrated = self.change_calibration_multiplier()
                 except ZeroDivisionError:
                     logger.info('You should select video first!')
                 except Exception:
@@ -141,7 +143,8 @@ class Gui:
                 if ret:
                     mask, self.width = process_image(frame=frame, verbose=0)
 
-                    frame = draw_angle_line(frame.copy(), mask)
+                    frame, angle = draw_angle_line(frame.copy(), mask)
+                    angle_multiplier = calculate_pixel_multiplier(angle)
                     frame = draw_fps(frame, cap)
 
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -153,11 +156,16 @@ class Gui:
                             source = mask
 
                         window['image'].update(data=cv2.imencode('.png', source)[1].tobytes())
-                        window['width_value_pxl'].update(round(self.width, 0))
-                        window['width_value_pxl_angle'].update(round(self.width * math.cos(self.angle*10), 0))
-                        window['width_value_mm'].update(round(self.width * calib_multiplier, 3))
+
+                        # window['width_value_pxl'].update(round(self.width, 0))
+                        window['width_value_pxl_angle'].update(
+                            round((self.width * angle_multiplier), 0))
+
+                        # window['width_value_mm'].update(round(self.width * width_multiplier_calibrated, 3))
                         window['width_value_mm_angle'].update(
-                            round(self.width * math.cos(self.angle*10) * calib_multiplier, 3))
+                            round(self.width * width_multiplier_calibrated * angle_multiplier, 3))
+
+                        window['angle_multiplier'].update(angle_multiplier)
                 else:
                     # End of video reached
                     cap.release()
