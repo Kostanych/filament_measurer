@@ -38,8 +38,8 @@ def mean_rolling(data, fps, seconds=1):
     if len(data) < fps*seconds:
         n = len(data)
     else:
-        n = fps*seconds
-
+        n = int(fps*seconds)
+    # print(f"NNNNNNNN     {n}")
     # calculate moving average
     return pd.Series(data).rolling(window=n).mean().iloc[n - 1:].values[-1]
 
