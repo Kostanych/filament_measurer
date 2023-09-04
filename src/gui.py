@@ -3,7 +3,7 @@ import math
 
 import PySimpleGUI as sg
 from image_processor import *
-from src.utils import get_logger
+from utils import get_logger, mean_rolling
 
 logger = get_logger("GUI")
 
@@ -16,6 +16,7 @@ class Gui:
         self.mask_or_image = 'image'
         self.play = False
         self.filename = ''
+        self.rolling_1s = 0
 
         # Set blank start frame
         img = np.full((480, 640), 255)
@@ -48,11 +49,11 @@ class Gui:
              ],
             [sg.Button('Show 10% of frames'), sg.Button('Show 100% of frames'), sg.Button('Mask/Image')],
             [sg.Button('Exit')],
-            [#sg.Text('Mean width in pixels: '), sg.Text('', size=(10, 1), key='width_value_pxl'),
-             sg.Text('Mean width in pixels: '), sg.Text('N/A', size=(10, 1), key='width_value_pxl_angle'),
+            [sg.Text('Mean width in pixels: '), sg.Text('N/A', size=(10, 1), key='width_value_pxl_angle'),
+             sg.Text('Mean rolling 1 second: '), sg.Text('N/A', size=(10, 1), key='rolling_1s'),
              ],
-            [#sg.Text('Mean width in mm:    '), sg.Text('', size=(10, 1), key='width_value_mm'),
-             sg.Text('Mean width in mm:    '), sg.Text('N/A', size=(10, 1), key='width_value_mm_angle'),
+            [sg.Text('Mean width in mm:    '), sg.Text('N/A', size=(10, 1), key='width_value_mm_angle'),
+             sg.Text('Mean rolling 10 second: '), sg.Text('N/A', size=(10, 1), key='rolling_10s')
              ],
             [
              sg.Text('angle_multiplier: '), sg.Text('N/A', size=(10, 1), key='angle_multiplier'),
@@ -69,6 +70,7 @@ class Gui:
         cap = None
         show_play_button = True
         fps = 30
+        width_list = []
 
         # Main event loop
         while True:
@@ -145,6 +147,9 @@ class Gui:
 
                     frame, angle = draw_angle_line(frame.copy(), mask)
                     angle_multiplier = calculate_pixel_multiplier(angle)
+                    width_list.append(self.width * angle_multiplier)
+                    rolling_1s = mean_rolling(width_list, fps)
+                    rolling_10s = mean_rolling(width_list, fps, 10)
                     frame = draw_fps(frame, cap)
 
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -166,6 +171,8 @@ class Gui:
                             round(self.width * width_multiplier_calibrated * angle_multiplier, 3))
 
                         window['angle_multiplier'].update(angle_multiplier)
+                        window['rolling_1s'].update(rolling_1s)
+                        window['rolling_10s'].update(rolling_10s)
                 else:
                     # End of video reached
                     cap.release()
