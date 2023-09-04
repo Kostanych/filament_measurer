@@ -112,7 +112,7 @@ def draw_fps(frame, cap):
     fps = cap.get(cv2.CAP_PROP_FPS)
     fps_text = f"FPS: {fps:.1f}"
     cv2.putText(frame, fps_text, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                (255, 0, 0), 2)
+                (0, 255, 0), 2)
 
     return frame
 

@@ -116,7 +116,7 @@ def main():
     if mask_button:
         logger.debug(f"Before mask/image switcher:   {st.session_state['mask_or_image']}")
         switch_mask_and_image()
-        logger.gebug(f"After mask/image switcher:    {st.session_state['mask_or_image']}")
+        logger.debug(f"After mask/image switcher:    {st.session_state['mask_or_image']}")
 
     if cap and st.session_state.play:
         print(f"PLAY   {st.session_state['play']}")

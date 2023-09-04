@@ -71,6 +71,7 @@ class Gui:
         show_play_button = True
         fps = 30
         width_list = []
+        output_size = (640, 480)
 
         # Main event loop
         while True:
@@ -91,6 +92,7 @@ class Gui:
                     # Set the initial frame
                     ret, frame = cap.read()
                     # Set the default title image from the 1st frame of the video
+                    frame = cv2.resize(frame, output_size)
                     self.title_frame = cv2.imencode('.png', frame)
                     # Set width different from the zero
                     _, self.width = process_image(frame=frame, verbose=0)
@@ -102,8 +104,12 @@ class Gui:
                 logger.info(f'play = {self.play}')
                 if (not self.play) & (self.filename != '') & (values['input_source'] == 'File'):
                     cap = cv2.VideoCapture(self.filename)
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
                 elif values['input_source'] == 'USB device':
                     cap = cv2.VideoCapture(0)
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 64)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 48)
                 self.play = True
 
             elif event == 'Stop':
@@ -143,14 +149,8 @@ class Gui:
                 ret, frame = cap.read()
                 show_play_button = False
                 if ret:
+                    frame = cv2.resize(frame, output_size)
                     mask, self.width = process_image(frame=frame, verbose=0)
-
-                    frame, angle = draw_angle_line(frame.copy(), mask)
-                    angle_multiplier = calculate_pixel_multiplier(angle)
-                    width_list.append(self.width * angle_multiplier)
-                    rolling_1s = mean_rolling(width_list, fps)
-                    rolling_10s = mean_rolling(width_list, fps, 10)
-                    frame = draw_fps(frame, cap)
 
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     # Show the frame if needed
@@ -159,6 +159,13 @@ class Gui:
                             source = frame
                         else:
                             source = mask
+
+                        source, angle = draw_angle_line(source.copy(), mask)
+                        angle_multiplier = calculate_pixel_multiplier(angle)
+                        width_list.append(self.width * angle_multiplier)
+                        rolling_1s = mean_rolling(width_list, fps)
+                        rolling_10s = mean_rolling(width_list, fps, 10)
+                        source = draw_fps(source, cap)
 
                         window['image'].update(data=cv2.imencode('.png', source)[1].tobytes())
 
