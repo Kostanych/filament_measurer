@@ -15,19 +15,15 @@ st.session_state.play = False
 st.session_state.pixel_width_multiplier = 0
 if 'title_frame' not in st.session_state:
     st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
-st.session_state.play_button_disabled = False
-st.session_state.stop_button_disabled = True
-st.session_state.disabled = False
+# st.session_state.play_button_disabled = False
+# st.session_state.stop_button_disabled = True
+# st.session_state.disabled = False
 
 if 'cap' not in st.session_state:
     st.session_state.cap = None
-print('-----------------------------------')
 if 'show_mask' not in st.session_state:
-    print('++++++++++++++++++++++++++++++')
-    print("INIT! No show_mask in session!!")
     st.session_state.show_mask = False
 if 'show_every_n_frame' not in st.session_state:
-    logger.info("show_every_n_frame not in a session state!")
     st.session_state['show_every_n_frame'] = 1
 if 'video_path' not in st.session_state:
     st.session_state['video_path'] = 'Empty'
@@ -64,12 +60,13 @@ def stop():
         st.session_state.cap.release()
 
 
-def mask_switcher():
-    """ Switcher mask/image """
-    logger.info(f"BUTTON Mask")
-    logger.info(f"Old show_mask:    {st.session_state.show_mask}")
-    st.session_state.show_mask = not st.session_state.show_mask
-    logger.info(f"New show_mask:    {st.session_state.show_mask}")
+# def mask_switcher():
+#     """ Switcher mask/image """
+#     logger.info(f"BUTTON Mask")
+#     if mask_radio == 'Image':
+#         st.session_state.show_mask = False
+#     else:
+#         st.session_state.show_mask = True
 
 
 # Elements
@@ -82,25 +79,44 @@ video_file = st.sidebar.file_uploader('Select a video file',
                                       )
 play_button = st.sidebar.button("Play", key='play_button', on_click=open_video)
 stop_button = st.sidebar.button('Stop', key='stop_button', on_click=stop)
-show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
-                                   disabled=st.session_state.disabled)
-show_100_button = st.sidebar.button('Show 100% of frames', key='show_100_button',
-                                    disabled=st.session_state.disabled)
+# frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
+# show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
+#                                    disabled=st.session_state.disabled)
+# show_100_button = st.sidebar.button('Show 100% of frames', key='show_100_button',
+#                                     disabled=st.session_state.disabled)
 # mask_radio = st.sidebar.radio("Mask/Image", [":rainbow[Image]", "***Mask***"])
 mask_radio = st.sidebar.radio("Mask/Image", ["Image", "Mask"])
 
+# Image display area
+col1, col2 = st.columns([0.7, 0.3])
+with col1:
+    st.header("Video")
+    vid_area = st.image(st.session_state.title_frame)
+with col2:
+    st.header("Results")
+    st.write('Mean width in pixels: ')
+    st.write('Mean width in mm: ')
+
+# vid_area = st.image(st.session_state.title_frame)
+# st.write('Mean width in pixels: ')
+# st.write('Mean width in mm: ')
+st.write(st.session_state)
+
+# Set variables
+width_list = []
+
+# Logic
+# """ Switcher mask/image """
+logger.info(f"BUTTON Mask")
 if mask_radio == 'Image':
     st.session_state.show_mask = False
 else:
     st.session_state.show_mask = True
 
-
-# Image display area
-vid_area = st.image(st.session_state.title_frame)
-st.write(st.session_state)
-
-# set variables
-width_list = []
+# if frames_radio == '100%':
+#     st.session_state['show_every_n_frame'] = 1
+# else:
+#     st.session_state['show_every_n_frame'] = 10
 
 if stop_button:
     """ Stop the cap """
@@ -125,27 +141,16 @@ if play_button and video_file:
     st.session_state['play'] = True
     logger.info(f'play = {st.session_state.play}')
 
-
-print(f"cap:   {st.session_state.cap}")
-print(f"play: {st.session_state.play}")
 if st.session_state.cap and st.session_state.play:
     print(f"PLAY   {st.session_state['play']}")
     cap = st.session_state.cap
     while cap.isOpened():
         ret, frame = cap.read()
-        if not ret:
-            st.session_state.play = False
-            cap.release()
-            width_list = []
         if ret:
+            # When the video starts
             mask, width = process_image(frame=frame, verbose=0)
-
-            # if st.session_state['mask_or_image'] == 'image':
-            #     source = frame
-            # else:
-            #     source = mask
+            # show_mask is missed sometimes. need to fix it
             try:
-
                 if st.session_state.show_mask:
                     source = mask
                 else:
@@ -155,8 +160,7 @@ if st.session_state.cap and st.session_state.play:
                 print(repr(e))
                 source = frame
 
-
-            # process frame
+            # Process frame
             source, angle = draw_angle_line(source.copy(), mask)
             angle_multiplier = calculate_pixel_multiplier(angle)
             width_list.append(width * angle_multiplier)
@@ -171,9 +175,15 @@ if st.session_state.cap and st.session_state.play:
             vid_area.image(source)
             time.sleep(1 / fps)  # keep the fps the same as the original fps
 
+        else:
+            # End of video
+            logger.info(f"END OF PLAYBACK")
+            st.session_state.play = False
+            cap.release()
+            width_list = []
+
+# vid_area = st.image(st.session_state.title_frame)
+
 # else:
 #     # End of video reached
 #     st.session_state.play = False
-
-st.write('Mean width in pixels: ')
-st.write('Mean width in mm: ')
