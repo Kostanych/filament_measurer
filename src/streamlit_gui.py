@@ -1,6 +1,7 @@
 import time
 import os.path
 
+import pandas as pd
 import streamlit as st
 from image_processor import *
 from utils import mean_rolling
@@ -41,6 +42,10 @@ if 'rolling_1s' not in st.session_state:
     st.session_state['rolling_1s'] = 0
 if 'rolling_10s' not in st.session_state:
     st.session_state['rolling_10s'] = 0
+if 'mean_1' not in st.session_state:
+    st.session_state['mean_1'] = []
+if 'mean_2' not in st.session_state:
+    st.session_state['mean_2'] = []
 
 
 # Functions
@@ -132,7 +137,7 @@ with col3:
     rolling_10s = st.text(f'10 seconds: 0')
 
 
-st.write(st.session_state)
+# st.write(st.session_state)
 
 # Logic
 
@@ -173,6 +178,15 @@ if video_file:
         logger.debug('filename IS in session state')
     vid_area.image(st.session_state.title_frame)
 
+chart_data = pd.DataFrame({
+    'col1' : st.session_state.mean_1,
+    'col2' : st.session_state.mean_2,
+})
+
+st.line_chart(
+    chart_data
+)
+
 
 if play_button and video_file:
     logger.info(f"play_button and video_file is TRUE")
@@ -194,10 +208,6 @@ if st.session_state.cap and st.session_state.play:
             # When the video starts
             mask, width = process_image(frame=frame, verbose=0)
             st.session_state.width = width
-            # TODO: refactor this
-            # if st.session_state.width == 1:
-            #     change_calibration_multiplier()
-
             # show_mask is missed sometimes. need to fix it
             try:
                 if st.session_state.show_mask:
@@ -218,6 +228,8 @@ if st.session_state.cap and st.session_state.play:
             fps = cap.get(cv2.CAP_PROP_FPS)
             st.session_state.rolling_1s = round(mean_rolling(st.session_state.width_list, fps), 4)
             st.session_state.rolling_10s = round(mean_rolling(st.session_state.width_list, fps, 10), 4)
+            st.session_state.mean_1.append(st.session_state.rolling_1s)
+            st.session_state.mean_2.append(st.session_state.rolling_10s)
 
             width_pxl.text(f'Width, pixels: {round((width * angle_multiplier), 0)}')
             width_mm.text(f'Width, mm:     {round(width * st.session_state.width_multiplier * angle_multiplier, 3)}')
@@ -238,8 +250,6 @@ if st.session_state.cap and st.session_state.play:
             st.session_state.width_list = []
             cap.release()
             width_list = []
-
-
 
 
 
