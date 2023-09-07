@@ -6,27 +6,41 @@ from image_processor import *
 from utils import mean_rolling
 
 logger = get_logger("STREAMLIT GUI")
+st.set_page_config(layout="wide")
 
 st.title('Filament Measurer')
 st.sidebar.header('Control Panel')
 
 # Session variables
 st.session_state.play = False
-st.session_state.pixel_width_multiplier = 0
+st.session_state.pixel_width_multiplier = 1
 if 'title_frame' not in st.session_state:
     st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
+
 # st.session_state.play_button_disabled = False
 # st.session_state.stop_button_disabled = True
 # st.session_state.disabled = False
 
+if 'width_list' not in st.session_state:
+    st.session_state['width_list'] = []
 if 'cap' not in st.session_state:
-    st.session_state.cap = None
+    st.session_state['cap'] = None
 if 'show_mask' not in st.session_state:
-    st.session_state.show_mask = False
+    st.session_state['show_mask'] = False
 if 'show_every_n_frame' not in st.session_state:
     st.session_state['show_every_n_frame'] = 1
 if 'video_path' not in st.session_state:
     st.session_state['video_path'] = 'Empty'
+if 'width' not in st.session_state:
+    st.session_state['width'] = 1
+if 'reference' not in st.session_state:
+    st.session_state['reference'] = 1
+if 'width_multiplier' not in st.session_state:
+    st.session_state['width_multiplier'] = 1
+if 'rolling_1s' not in st.session_state:
+    st.session_state['rolling_1s'] = 0
+if 'rolling_10s' not in st.session_state:
+    st.session_state['rolling_10s'] = 0
 
 
 # Functions
@@ -60,17 +74,31 @@ def stop():
         st.session_state.cap.release()
 
 
-# def mask_switcher():
-#     """ Switcher mask/image """
-#     logger.info(f"BUTTON Mask")
-#     if mask_radio == 'Image':
-#         st.session_state.show_mask = False
-#     else:
-#         st.session_state.show_mask = True
+def change_calibration_multiplier():
+    """ The calibration multiplier is used to estimate the current width """
+    print(f"width      {st.session_state.width}")
+    print(f"reference: {st.session_state.reference}")
+    try:
+        st.session_state.width_multiplier = st.session_state.reference / st.session_state.width
+    except Exception as e:
+        logger.info(repr(e))
+        st.session_state.width_multiplier = 0.01
+    logger.info(f"Calibration multiplier: {st.session_state.width_multiplier}")
+
+
+def mask_switcher():
+    """ Switcher mask/image """
+    logger.info(f"BUTTON Mask")
+    if mask_radio == 'Image':
+        st.session_state.show_mask = False
+    else:
+        st.session_state.show_mask = True
 
 
 # Elements
-calibration_width = st.sidebar.text_input('Change calibration width (mm):', value=0)
+reference = st.sidebar.number_input('Reference width (mm):', value=float(1),
+                                    # on_change=change_calibration_multiplier
+                                    )
 input_source = st.sidebar.selectbox('Input Source', key='input_source',
                                     options=['File', 'USB Device'], index=0)
 video_file = st.sidebar.file_uploader('Select a video file',
@@ -85,27 +113,34 @@ stop_button = st.sidebar.button('Stop', key='stop_button', on_click=stop)
 # show_100_button = st.sidebar.button('Show 100% of frames', key='show_100_button',
 #                                     disabled=st.session_state.disabled)
 # mask_radio = st.sidebar.radio("Mask/Image", [":rainbow[Image]", "***Mask***"])
-mask_radio = st.sidebar.radio("Mask/Image", ["Image", "Mask"])
+mask_radio = st.sidebar.radio("Mask/Image", ["Image", "Mask"],
+                              # on_change=mask_switcher
+                              )
 
 # Image display area
-col1, col2 = st.columns([0.7, 0.3])
+col1, col2, col3 = st.columns([0.5, 0.2,0.2])
 with col1:
     st.header("Video")
     vid_area = st.image(st.session_state.title_frame)
 with col2:
     st.header("Results")
-    st.write('Mean width in pixels: ')
-    st.write('Mean width in mm: ')
+    width_pxl = st.text(f'Width, pixels: N/A')
+    width_mm = st.text(f'Width, mm:     N/A')
+with col3:
+    st.header("Mean rolling")
+    rolling_1s = st.text(f'1 second:   0')
+    rolling_10s = st.text(f'10 seconds: 0')
 
-# vid_area = st.image(st.session_state.title_frame)
-# st.write('Mean width in pixels: ')
-# st.write('Mean width in mm: ')
+
 st.write(st.session_state)
 
-# Set variables
-width_list = []
-
 # Logic
+
+# Change reference multiplier
+if reference:
+    st.session_state['reference'] = reference
+    change_calibration_multiplier()
+
 # """ Switcher mask/image """
 logger.info(f"BUTTON Mask")
 if mask_radio == 'Image':
@@ -122,25 +157,34 @@ if stop_button:
     """ Stop the cap """
     logger.info(f"BUTTON Stop")
     st.session_state.play = False
+    st.session_state.width_list = []
     if 'cap' in st.session_state:
         st.session_state.cap.release()
 
 if video_file:
     # Get filename, set title frame
     if 'filename' not in st.session_state:
-        logger.info('filename not in session state')
+        logger.debug('filename not in session state')
         st.session_state['filename'] = video_file.name
         st.session_state['video_path'] = get_video_filename()
         open_video()
         _, st.session_state.title_frame = st.session_state.cap.read()
     else:
-        logger.info('filename IS in session state')
+        logger.debug('filename IS in session state')
+    vid_area.image(st.session_state.title_frame)
+
 
 if play_button and video_file:
     logger.info(f"play_button and video_file is TRUE")
     st.session_state['play'] = True
-    logger.info(f'play = {st.session_state.play}')
+    # Process first frame
+    ret, frame = st.session_state.cap.read()
+    if ret:
+        _, width = process_image(frame=frame, verbose=0)
+        st.session_state.width = width
+    change_calibration_multiplier()
 
+# Play video
 if st.session_state.cap and st.session_state.play:
     print(f"PLAY   {st.session_state['play']}")
     cap = st.session_state.cap
@@ -149,13 +193,18 @@ if st.session_state.cap and st.session_state.play:
         if ret:
             # When the video starts
             mask, width = process_image(frame=frame, verbose=0)
+            st.session_state.width = width
+            # TODO: refactor this
+            # if st.session_state.width == 1:
+            #     change_calibration_multiplier()
+
             # show_mask is missed sometimes. need to fix it
             try:
                 if st.session_state.show_mask:
                     source = mask
                 else:
                     source = frame
-                logger.info(f"SOURCE IS MASK:   {st.session_state.show_mask}")
+                logger.debug(f"SOURCE IS MASK:   {st.session_state.show_mask}")
             except Exception as e:
                 print(repr(e))
                 source = frame
@@ -163,11 +212,18 @@ if st.session_state.cap and st.session_state.play:
             # Process frame
             source, angle = draw_angle_line(source.copy(), mask)
             angle_multiplier = calculate_pixel_multiplier(angle)
-            width_list.append(width * angle_multiplier)
+            st.session_state.width_list.append(width * angle_multiplier * st.session_state.width_multiplier)
+            # width_multiplier_calibrated = change_calibration_multiplier()
 
             fps = cap.get(cv2.CAP_PROP_FPS)
-            rolling_1s = mean_rolling(width_list, fps)
-            rolling_10s = mean_rolling(width_list, fps, 10)
+            st.session_state.rolling_1s = round(mean_rolling(st.session_state.width_list, fps), 4)
+            st.session_state.rolling_10s = round(mean_rolling(st.session_state.width_list, fps, 10), 4)
+
+            width_pxl.text(f'Width, pixels: {round((width * angle_multiplier), 0)}')
+            width_mm.text(f'Width, mm:     {round(width * st.session_state.width_multiplier * angle_multiplier, 3)}')
+
+            rolling_1s.text(f'1 second:   {st.session_state.rolling_1s}')
+            rolling_10s.text(f'10 seconds: {st.session_state.rolling_10s}')
 
             source = draw_fps(source, cap)
             # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -179,8 +235,22 @@ if st.session_state.cap and st.session_state.play:
             # End of video
             logger.info(f"END OF PLAYBACK")
             st.session_state.play = False
+            st.session_state.width_list = []
             cap.release()
             width_list = []
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # vid_area = st.image(st.session_state.title_frame)
 
