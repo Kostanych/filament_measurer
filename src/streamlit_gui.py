@@ -1,8 +1,15 @@
 import time
 import os.path
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import altair as alt
+
+
 import pandas as pd
 import streamlit as st
+import vega_datasets
+
 from image_processor import *
 from utils import mean_rolling
 
@@ -22,6 +29,7 @@ if 'title_frame' not in st.session_state:
 # st.session_state.stop_button_disabled = True
 # st.session_state.disabled = False
 
+logger.info('session_state variables check')
 if 'width_list' not in st.session_state:
     st.session_state['width_list'] = []
 if 'cap' not in st.session_state:
@@ -35,7 +43,7 @@ if 'video_path' not in st.session_state:
 if 'width' not in st.session_state:
     st.session_state['width'] = 1
 if 'reference' not in st.session_state:
-    st.session_state['reference'] = 1
+    st.session_state['reference'] = 1.75
 if 'width_multiplier' not in st.session_state:
     st.session_state['width_multiplier'] = 1
 if 'rolling_1s' not in st.session_state:
@@ -46,10 +54,12 @@ if 'mean_1' not in st.session_state:
     st.session_state['mean_1'] = []
 if 'mean_2' not in st.session_state:
     st.session_state['mean_2'] = []
+if 'fps' not in st.session_state:
+    st.session_state['fps'] = 24
 
 
 # Functions
-@st.cache_resource
+# @st.cache_resource
 def get_video_filename():
     """ Get file name """
     logger.info('GET FILENAME...')
@@ -100,15 +110,30 @@ def mask_switcher():
         st.session_state.show_mask = True
 
 
+def make_result_df():
+    chart_data = pd.DataFrame({
+        'Mean 1s': st.session_state.mean_1,
+        'Mean 10s': st.session_state.mean_2,
+    })
+    chart_data['frame'] = chart_data.index
+    return chart_data
+
+
+def load_video(video_file):
+    st.session_state['filename'] = video_file.name
+    st.session_state['video_path'] = get_video_filename()
+    open_video()
+    _, st.session_state.title_frame = st.session_state.cap.read()
+
+
 # Elements
-reference = st.sidebar.number_input('Reference width (mm):', value=float(1),
+reference = st.sidebar.number_input('Reference width (mm):', value=float(1.75),
                                     # on_change=change_calibration_multiplier
                                     )
 input_source = st.sidebar.selectbox('Input Source', key='input_source',
                                     options=['File', 'USB Device'], index=0)
 video_file = st.sidebar.file_uploader('Select a video file',
                                       type=['mp4', 'avi', 'mov'],
-                                      # on_change=open_video
                                       )
 play_button = st.sidebar.button("Play", key='play_button', on_click=open_video)
 stop_button = st.sidebar.button('Stop', key='stop_button', on_click=stop)
@@ -123,7 +148,7 @@ mask_radio = st.sidebar.radio("Mask/Image", ["Image", "Mask"],
                               )
 
 # Image display area
-col1, col2, col3 = st.columns([0.5, 0.2,0.2])
+col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
 with col1:
     st.header("Video")
     vid_area = st.image(st.session_state.title_frame)
@@ -136,18 +161,15 @@ with col3:
     rolling_1s = st.text(f'1 second:   0')
     rolling_10s = st.text(f'10 seconds: 0')
 
-
-# st.write(st.session_state)
+plot_area = st.empty()
 
 # Logic
-
 # Change reference multiplier
 if reference:
     st.session_state['reference'] = reference
     change_calibration_multiplier()
 
 # """ Switcher mask/image """
-logger.info(f"BUTTON Mask")
 if mask_radio == 'Image':
     st.session_state.show_mask = False
 else:
@@ -166,27 +188,47 @@ if stop_button:
     if 'cap' in st.session_state:
         st.session_state.cap.release()
 
-if video_file:
+
+
+
+if video_file is not None:
     # Get filename, set title frame
-    if 'filename' not in st.session_state:
-        logger.debug('filename not in session state')
-        st.session_state['filename'] = video_file.name
-        st.session_state['video_path'] = get_video_filename()
-        open_video()
-        _, st.session_state.title_frame = st.session_state.cap.read()
+    if ('filename' not in st.session_state) or (st.session_state.filename != video_file.name):
+        load_video(video_file)
     else:
         logger.debug('filename IS in session state')
     vid_area.image(st.session_state.title_frame)
 
-chart_data = pd.DataFrame({
-    'col1' : st.session_state.mean_1,
-    'col2' : st.session_state.mean_2,
-})
+# chart_data = pd.DataFrame({
+#     'Mean 1s': st.session_state.mean_1,
+#     'Mean 10s': st.session_state.mean_2,
+# })
+#
+# st.line_chart(
+#     chart_data
+# )
 
-st.line_chart(
-    chart_data
-)
 
+# sns.set(rc={'figure.figsize': (10, 2)})
+# def meanplot():
+#     # depricated
+#     # Clear the existing legend
+#     fig, ax = plt.subplots()
+#     chart_data = pd.DataFrame({
+#         'Mean 1s': st.session_state.mean_1,
+#         'Mean 10s': st.session_state.mean_2,
+#     })
+#
+#     # pl = sns.lineplot(data=chart_data, palette="tab10", linewidth=1.5)
+#     ax.plot(chart_data['Mean 1s'])
+#     ax.plot(chart_data['Mean 10s'],
+#              color='red',
+#              linewidth=1.0,
+#              linestyle='--'
+#              )
+#     return fig
+
+plot_area = st.empty()
 
 if play_button and video_file:
     logger.info(f"play_button and video_file is TRUE")
@@ -197,6 +239,7 @@ if play_button and video_file:
         _, width = process_image(frame=frame, verbose=0)
         st.session_state.width = width
     change_calibration_multiplier()
+
 
 # Play video
 if st.session_state.cap and st.session_state.play:
@@ -222,17 +265,22 @@ if st.session_state.cap and st.session_state.play:
             # Process frame
             source, angle = draw_angle_line(source.copy(), mask)
             angle_multiplier = calculate_pixel_multiplier(angle)
-            st.session_state.width_list.append(width * angle_multiplier * st.session_state.width_multiplier)
+            st.session_state.width_list.append(
+                width * angle_multiplier * st.session_state.width_multiplier)
             # width_multiplier_calibrated = change_calibration_multiplier()
 
             fps = cap.get(cv2.CAP_PROP_FPS)
-            st.session_state.rolling_1s = round(mean_rolling(st.session_state.width_list, fps), 4)
-            st.session_state.rolling_10s = round(mean_rolling(st.session_state.width_list, fps, 10), 4)
+            st.session_state.fps = fps
+            st.session_state.rolling_1s = round(
+                mean_rolling(st.session_state.width_list, fps), 4)
+            st.session_state.rolling_10s = round(
+                mean_rolling(st.session_state.width_list, fps, 10), 4)
             st.session_state.mean_1.append(st.session_state.rolling_1s)
             st.session_state.mean_2.append(st.session_state.rolling_10s)
 
             width_pxl.text(f'Width, pixels: {round((width * angle_multiplier), 0)}')
-            width_mm.text(f'Width, mm:     {round(width * st.session_state.width_multiplier * angle_multiplier, 3)}')
+            width_mm.text(
+                f'Width, mm:     {round(width * st.session_state.width_multiplier * angle_multiplier, 3)}')
 
             rolling_1s.text(f'1 second:   {st.session_state.rolling_1s}')
             rolling_10s.text(f'10 seconds: {st.session_state.rolling_10s}')
@@ -243,6 +291,17 @@ if st.session_state.cap and st.session_state.play:
             vid_area.image(source)
             time.sleep(1 / fps)  # keep the fps the same as the original fps
 
+            chart_data = make_result_df()
+
+            # Plot results
+            data = chart_data.melt('frame', var_name='seconds_count', value_name='values')
+            points = alt.Chart(data).mark_line().encode(
+                x=alt.X('frame:T'),
+                y=alt.Y('values:Q', scale=alt.Scale(domain=[1.50, 2])),
+                color='seconds_count:N',
+            ).properties(width=1000)
+            plot_area.altair_chart(points)
+
         else:
             # End of video
             logger.info(f"END OF PLAYBACK")
@@ -252,15 +311,7 @@ if st.session_state.cap and st.session_state.play:
             width_list = []
 
 
-
-
-
-
-
-
-
-
-
+        # plot_area = st.pyplot(meanplot())
 
 # vid_area = st.image(st.session_state.title_frame)
 
