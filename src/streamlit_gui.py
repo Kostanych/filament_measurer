@@ -1,14 +1,10 @@
 import time
 import os.path
 
-import matplotlib.pyplot as plt
-import seaborn as sns
 import altair as alt
-
 
 import pandas as pd
 import streamlit as st
-import vega_datasets
 
 from image_processor import *
 from utils import mean_rolling
@@ -32,16 +28,18 @@ if 'title_frame' not in st.session_state:
 logger.info('session_state variables check')
 if 'width_list' not in st.session_state:
     st.session_state['width_list'] = []
+# if 'plot_area' not in st.session_state:
+#     st.session_state['plot_area'] = st.empty
 if 'cap' not in st.session_state:
     st.session_state['cap'] = None
 if 'show_mask' not in st.session_state:
     st.session_state['show_mask'] = False
 if 'show_every_n_frame' not in st.session_state:
     st.session_state['show_every_n_frame'] = 1
-if 'video_path' not in st.session_state:
-    st.session_state['video_path'] = 'Empty'
-if 'width' not in st.session_state:
-    st.session_state['width'] = 1
+if 'df_points' not in st.session_state:
+    st.session_state['df_points'] = pd.DataFrame()
+if 'width_pxl' not in st.session_state:
+    st.session_state['width_pxl'] = 1
 if 'reference' not in st.session_state:
     st.session_state['reference'] = 1.75
 if 'width_multiplier' not in st.session_state:
@@ -76,8 +74,11 @@ def open_video():
     """ Open a video, return cap into session state """
     if st.session_state.cap:
         st.session_state.cap.release()
-    video_path = st.session_state['video_path']
-    st.session_state.cap = cv2.VideoCapture(video_path)
+    if 'video_path' in st.session_state:
+        video_path = st.session_state['video_path']
+        st.session_state.cap = cv2.VideoCapture(video_path)
+    else:
+        logger.info('Select the video first!')
     # _, st.session_state.title_frame = st.session_state.cap.read()
 
 
@@ -91,10 +92,10 @@ def stop():
 
 def change_calibration_multiplier():
     """ The calibration multiplier is used to estimate the current width """
-    print(f"width      {st.session_state.width}")
+    print(f"width      {st.session_state.width_pxl}")
     print(f"reference: {st.session_state.reference}")
     try:
-        st.session_state.width_multiplier = st.session_state.reference / st.session_state.width
+        st.session_state.width_multiplier = st.session_state.reference / st.session_state.width_pxl
     except Exception as e:
         logger.info(repr(e))
         st.session_state.width_multiplier = 0.01
@@ -110,20 +111,53 @@ def mask_switcher():
         st.session_state.show_mask = True
 
 
-def make_result_df():
-    chart_data = pd.DataFrame({
+def make_result_df() -> pd.DataFrame():
+    """
+    Consumes dataframe and melt it to display on the Altair plot
+    Returns:
+        melted dataframe.
+    """
+    df = pd.DataFrame({
         'Mean 1s': st.session_state.mean_1,
         'Mean 10s': st.session_state.mean_2,
     })
-    chart_data['frame'] = chart_data.index
-    return chart_data
+    df['frame'] = df.index
+    return df
 
 
 def load_video(video_file):
+    """
+    Load video
+    Args:
+        video_file: file object from Streamlit.
+    """
     st.session_state['filename'] = video_file.name
     st.session_state['video_path'] = get_video_filename()
     open_video()
     _, st.session_state.title_frame = st.session_state.cap.read()
+
+
+def update_rolling_plot(plot_area):
+    """
+    Display plot based on data from session state.
+    Args:
+        plot_area: place to display the plot.
+    """
+    min_value = min(st.session_state['width_list'])
+    max_value = max(st.session_state['width_list'])
+    points = alt.Chart(st.session_state.df_points).mark_line().encode(
+        x=alt.X('frame:T'),
+        y=alt.Y('values:Q', scale=alt.Scale(domain=[min_value-0.2, max_value+0.2])),
+        color='seconds_count:N',
+    ).properties(
+        width=1000
+    ).configure_axis(
+        labelFontSize=20,
+        titleFontSize=20
+    ).configure_legend(
+        titleFontSize=20
+    )
+    plot_area.altair_chart(points)
 
 
 # Elements
@@ -154,14 +188,31 @@ with col1:
     vid_area = st.image(st.session_state.title_frame)
 with col2:
     st.header("Results")
-    width_pxl = st.text(f'Width, pixels: N/A')
-    width_mm = st.text(f'Width, mm:     N/A')
+    width_pxl_area = st.markdown(f'<span style="font-size: 20px;">Width, pixels: N/A</span>',
+            unsafe_allow_html=True)
+    width_mm_area = st.markdown(f'<span style="font-size: 20px;">Width, mm:     N/A</span>',
+            unsafe_allow_html=True)
 with col3:
     st.header("Mean rolling")
-    rolling_1s = st.text(f'1 second:   0')
-    rolling_10s = st.text(f'10 seconds: 0')
+    rolling_1s = st.markdown(f'<span style="font-size: 20px;">1 second:   0</span>',
+            unsafe_allow_html=True)
+    rolling_10s = st.markdown(f'<span style="font-size: 20px;">10 seconds: 0</span>',
+            unsafe_allow_html=True)
 
-plot_area = st.empty()
+# Plot display area
+col11, col12 = st.columns([0.8, 0.2])
+with col11:
+    if not st.session_state['width_list']:
+        st.session_state['plot_area'] = st.empty()
+    else:
+        update_rolling_plot(st.session_state['plot_area'])
+with col12:
+    st.header("Difference")
+    st.markdown(f'<span style="font-size: 20px;">Reference:  {st.session_state.reference}</span>',
+            unsafe_allow_html=True)
+    difference = st.markdown(f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
+            unsafe_allow_html=True)
+
 
 # Logic
 # Change reference multiplier
@@ -187,27 +238,16 @@ if stop_button:
     st.session_state.width_list = []
     if 'cap' in st.session_state:
         st.session_state.cap.release()
-
-
-
+    update_rolling_plot(st.session_state['plot_area'])
 
 if video_file is not None:
     # Get filename, set title frame
-    if ('filename' not in st.session_state) or (st.session_state.filename != video_file.name):
+    if ('filename' not in st.session_state) or (
+            st.session_state.filename != video_file.name):
         load_video(video_file)
     else:
         logger.debug('filename IS in session state')
     vid_area.image(st.session_state.title_frame)
-
-# chart_data = pd.DataFrame({
-#     'Mean 1s': st.session_state.mean_1,
-#     'Mean 10s': st.session_state.mean_2,
-# })
-#
-# st.line_chart(
-#     chart_data
-# )
-
 
 # sns.set(rc={'figure.figsize': (10, 2)})
 # def meanplot():
@@ -228,7 +268,8 @@ if video_file is not None:
 #              )
 #     return fig
 
-plot_area = st.empty()
+
+
 
 if play_button and video_file:
     logger.info(f"play_button and video_file is TRUE")
@@ -237,9 +278,8 @@ if play_button and video_file:
     ret, frame = st.session_state.cap.read()
     if ret:
         _, width = process_image(frame=frame, verbose=0)
-        st.session_state.width = width
+        st.session_state.width_pxl = width
     change_calibration_multiplier()
-
 
 # Play video
 if st.session_state.cap and st.session_state.play:
@@ -249,8 +289,8 @@ if st.session_state.cap and st.session_state.play:
         ret, frame = cap.read()
         if ret:
             # When the video starts
-            mask, width = process_image(frame=frame, verbose=0)
-            st.session_state.width = width
+            mask, width_pxl = process_image(frame=frame, verbose=0)
+            st.session_state.width_pxl = width_pxl
             # show_mask is missed sometimes. need to fix it
             try:
                 if st.session_state.show_mask:
@@ -265,10 +305,12 @@ if st.session_state.cap and st.session_state.play:
             # Process frame
             source, angle = draw_angle_line(source.copy(), mask)
             angle_multiplier = calculate_pixel_multiplier(angle)
-            st.session_state.width_list.append(
-                width * angle_multiplier * st.session_state.width_multiplier)
+            width_pxl = width_pxl * angle_multiplier
+            width_mm = width_pxl * angle_multiplier * st.session_state.width_multiplier
+            st.session_state.width_list.append(width_mm)
             # width_multiplier_calibrated = change_calibration_multiplier()
 
+            # Process variables
             fps = cap.get(cv2.CAP_PROP_FPS)
             st.session_state.fps = fps
             st.session_state.rolling_1s = round(
@@ -278,12 +320,16 @@ if st.session_state.cap and st.session_state.play:
             st.session_state.mean_1.append(st.session_state.rolling_1s)
             st.session_state.mean_2.append(st.session_state.rolling_10s)
 
-            width_pxl.text(f'Width, pixels: {round((width * angle_multiplier), 0)}')
-            width_mm.text(
-                f'Width, mm:     {round(width * st.session_state.width_multiplier * angle_multiplier, 3)}')
 
-            rolling_1s.text(f'1 second:   {st.session_state.rolling_1s}')
-            rolling_10s.text(f'10 seconds: {st.session_state.rolling_10s}')
+            width_pxl_area.markdown(f'<span style="font-size: 20px;">Width, pixels: {round(width_pxl, 0)}</span>',
+                        unsafe_allow_html=True)
+            width_mm_area.markdown(f'<span style="font-size: 20px;">Width, mm:     {round(width_mm, 3)}</span>',
+                        unsafe_allow_html=True)
+
+            rolling_1s.markdown(f'<span style="font-size: 20px;">1 second:   {st.session_state.rolling_1s}</span>',
+                        unsafe_allow_html=True)
+            rolling_10s.markdown(f'<span style="font-size: 20px;">10 seconds: {st.session_state.rolling_10s}</span>',
+                        unsafe_allow_html=True)
 
             source = draw_fps(source, cap)
             # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -294,22 +340,21 @@ if st.session_state.cap and st.session_state.play:
             chart_data = make_result_df()
 
             # Plot results
-            data = chart_data.melt('frame', var_name='seconds_count', value_name='values')
-            points = alt.Chart(data).mark_line().encode(
-                x=alt.X('frame:T'),
-                y=alt.Y('values:Q', scale=alt.Scale(domain=[1.50, 2])),
-                color='seconds_count:N',
-            ).properties(width=1000)
-            plot_area.altair_chart(points)
+            st.session_state.df_points = chart_data.melt('frame',
+                                                         var_name='seconds_count',
+                                                         value_name='values')
+            # Update variables
+            update_rolling_plot(st.session_state['plot_area'])
+            difference.markdown(f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
+                        unsafe_allow_html=True)
 
         else:
             # End of video
             logger.info(f"END OF PLAYBACK")
             st.session_state.play = False
-            st.session_state.width_list = []
+            # st.session_state.width_list = []
             cap.release()
-            width_list = []
-
+            # width_list = []
 
         # plot_area = st.pyplot(meanplot())
 

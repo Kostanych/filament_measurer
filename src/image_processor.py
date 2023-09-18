@@ -52,7 +52,7 @@ def process_image(frame, verbose=0):
     # by averaging the number of pixels per vertical line
     filament_thickness = np.mean(np.sum(binary_frame == 0, axis=0))
 
-    # Output the measured thickness for the current frame
+    # The Output the measured thickness for the current frame
     logger.debug("Filament thickness on the current frame: {} pixels".format(
         filament_thickness))
 
