@@ -29,8 +29,8 @@ if "title_frame" not in st.session_state:
 logger.info("session_state variables check")
 if "width_list" not in st.session_state:
     st.session_state["width_list"] = []
-# if 'plot_area' not in st.session_state:
-#     st.session_state['plot_area'] = st.empty
+if 'source' not in st.session_state:
+    st.session_state['source'] = 'File'
 if "cap" not in st.session_state:
     st.session_state["cap"] = None
 if "show_mask" not in st.session_state:
@@ -64,7 +64,7 @@ def get_video_filename():
     logger.info("GET FILENAME...")
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filename = ROOT_DIR + "/data/input/" + st.session_state["filename"]
-    # logger.info(f"st.session_state['filename']  {st.session_state['filename']}")
+    logger.info(f"st.session_state['filename']  {st.session_state['filename']}")
     logger.info(f"filename  {os.path.normpath(filename)}")
     # Return a normalized path.
     return os.path.normpath(filename)
@@ -75,9 +75,13 @@ def open_video():
     """Open a video, return cap into session state"""
     if st.session_state.cap:
         st.session_state.cap.release()
-    if "video_path" in st.session_state:
+    if ("video_path" in st.session_state) and (st.session_state['source'] == 'File'):
+        logger.info('VIDEO FROM FILE')
         video_path = st.session_state["video_path"]
         st.session_state.cap = cv2.VideoCapture(video_path)
+    elif ("video_path" in st.session_state) and (st.session_state['source'] == 'USB Device'):
+        logger.info('VIDEO FROM USB')
+        st.session_state.cap = cv2.VideoCapture(0)
     else:
         logger.info("Select the video first!")
     # _, st.session_state.title_frame = st.session_state.cap.read()
@@ -248,6 +252,10 @@ if mask_radio == "Image":
     st.session_state.show_mask = False
 else:
     st.session_state.show_mask = True
+
+
+# Input switcher
+st.session_state.source = input_source
 
 # if frames_radio == '100%':
 #     st.session_state['show_every_n_frame'] = 1
