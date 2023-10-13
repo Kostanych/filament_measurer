@@ -1,4 +1,3 @@
-
 import time
 import os.path
 
@@ -29,8 +28,8 @@ if "title_frame" not in st.session_state:
 logger.info("session_state variables check")
 if "width_list" not in st.session_state:
     st.session_state["width_list"] = []
-if 'source' not in st.session_state:
-    st.session_state['source'] = 'File'
+if "source" not in st.session_state:
+    st.session_state["source"] = "File"
 if "cap" not in st.session_state:
     st.session_state["cap"] = None
 if "show_mask" not in st.session_state:
@@ -75,12 +74,14 @@ def open_video():
     """Open a video, return cap into session state"""
     if st.session_state.cap:
         st.session_state.cap.release()
-    if ("video_path" in st.session_state) and (st.session_state['source'] == 'File'):
-        logger.info('VIDEO FROM FILE')
+    if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
+        logger.info("VIDEO FROM FILE")
         video_path = st.session_state["video_path"]
         st.session_state.cap = cv2.VideoCapture(video_path)
-    elif ("video_path" in st.session_state) and (st.session_state['source'] == 'USB Device'):
-        logger.info('VIDEO FROM USB')
+    elif ("video_path" in st.session_state) and (
+        st.session_state["source"] == "USB Device"
+    ):
+        logger.info("VIDEO FROM USB")
         st.session_state.cap = cv2.VideoCapture(0)
     else:
         logger.info("Select the video first!")
@@ -118,7 +119,7 @@ def mask_switcher():
         st.session_state.show_mask = True
 
 
-def make_result_df() -> pd.DataFrame():
+def make_result_df(num_seconds=2) -> pd.DataFrame():
     """
     Consumes dataframe and melt it to display on the Altair plot
     Returns:
@@ -131,6 +132,11 @@ def make_result_df() -> pd.DataFrame():
         }
     )
     df["frame"] = df.index
+    # Cut dataframe to represent X seconds of work.
+    max_frame = df.frame.max()
+    df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
+    df = df.melt("frame", var_name="seconds_count", value_name="values")
+    print(df)
     return df
 
 
@@ -152,23 +158,31 @@ def update_rolling_plot(plot_area):
     Args:
         plot_area: place to display the plot.
     """
-    min_value = min(st.session_state["width_list"])
-    max_value = max(st.session_state["width_list"])
-    points = (
-        alt.Chart(st.session_state.df_points)
-        .mark_line()
-        .encode(
-            x=alt.X("frame:T"),
-            y=alt.Y(
-                "values:Q", scale=alt.Scale(domain=[min_value - 0.2, max_value + 0.2])
-            ),
-            color="seconds_count:N",
+    try:
+        min_value = min(st.session_state["width_list"])
+        max_value = max(st.session_state["width_list"])
+        print(st.session_state.df_points)
+        points = (
+            alt.Chart(st.session_state.df_points)
+            .mark_line()
+            .encode(
+                x=alt.X("frame"),
+                y=alt.Y(
+                    "values:Q",
+                    scale=alt.Scale(domain=[min_value - 0.2, max_value + 0.2]),
+                ),
+                color="seconds_count:N",
+            )
+            .properties(width=1000)
+            .configure_axis(labelFontSize=20, titleFontSize=20)
+            .configure_legend(titleFontSize=20)
         )
-        .properties(width=1000)
-        .configure_axis(labelFontSize=20, titleFontSize=20)
-        .configure_legend(titleFontSize=20)
-    )
-    plot_area.altair_chart(points)
+        # Update plot every quarter of a second
+        if st.session_state.df_points["frame"].max() % 6 == 0:
+            plot_area.altair_chart(points)
+        # plot_area.altair_chart(points)
+    except Exception as e:
+        print(repr(e))
 
 
 # Elements
@@ -379,9 +393,7 @@ if st.session_state.cap and st.session_state.play:
             chart_data = make_result_df()
 
             # Plot results
-            st.session_state.df_points = chart_data.melt(
-                "frame", var_name="seconds_count", value_name="values"
-            )
+            st.session_state.df_points = chart_data
             # Update variables
             update_rolling_plot(st.session_state["plot_area"])
             difference.markdown(
