@@ -58,88 +58,6 @@ if "fps" not in st.session_state:
 
 # Functions
 # @st.cache_resource
-def get_video_filename():
-    """Get file name"""
-    logger.info("GET FILENAME...")
-    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = ROOT_DIR + "/data/input/" + st.session_state["filename"]
-    logger.info(f"st.session_state['filename']  {st.session_state['filename']}")
-    logger.info(f"filename  {os.path.normpath(filename)}")
-    # Return a normalized path.
-    return os.path.normpath(filename)
-
-
-# Function to open video using OpenCV
-def open_video():
-    """Open a video, return cap into session state"""
-    if st.session_state.cap:
-        st.session_state.cap.release()
-    if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
-        logger.info("VIDEO FROM FILE")
-        video_path = st.session_state["video_path"]
-        st.session_state.cap = cv2.VideoCapture(video_path)
-    elif ("video_path" in st.session_state) and (
-        st.session_state["source"] == "USB Device"
-    ):
-        logger.info("VIDEO FROM USB")
-        st.session_state.cap = cv2.VideoCapture(0)
-    else:
-        logger.info("Select the video first!")
-    # _, st.session_state.title_frame = st.session_state.cap.read()
-
-
-def stop():
-    """Stop the cap"""
-    logger.info(f"BUTTON Stop")
-    st.session_state.play = False
-    if "cap" in st.session_state:
-        st.session_state.cap.release()
-
-
-def change_calibration_multiplier():
-    """The calibration multiplier is used to estimate the current width"""
-    print(f"width      {st.session_state.width_pxl}")
-    print(f"reference: {st.session_state.reference}")
-    try:
-        st.session_state.width_multiplier = (
-            st.session_state.reference / st.session_state.width_pxl
-        )
-    except Exception as e:
-        logger.info(repr(e))
-        st.session_state.width_multiplier = 0.01
-    logger.info(f"Calibration multiplier: {st.session_state.width_multiplier}")
-
-
-def mask_switcher():
-    """Switcher mask/image"""
-    logger.info(f"BUTTON Mask")
-    if mask_radio == "Image":
-        st.session_state.show_mask = False
-    else:
-        st.session_state.show_mask = True
-
-
-def make_result_df(num_seconds=2) -> pd.DataFrame():
-    """
-    Consumes dataframe and melt it to display on the Altair plot
-    Returns:
-        melted dataframe.
-    """
-    df = pd.DataFrame(
-        {
-            "Mean 1s": st.session_state.mean_1,
-            "Mean 10s": st.session_state.mean_2,
-        }
-    )
-    df["frame"] = df.index
-    # Cut dataframe to represent X seconds of work.
-    max_frame = df.frame.max()
-    df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
-    df = df.melt("frame", var_name="seconds_count", value_name="values")
-    print(df)
-    return df
-
-
 def load_video(video_file):
     """
     Load video
@@ -152,37 +70,7 @@ def load_video(video_file):
     _, st.session_state.title_frame = st.session_state.cap.read()
 
 
-def update_rolling_plot(plot_area):
-    """
-    Display plot based on data from session state.
-    Args:
-        plot_area: place to display the plot.
-    """
-    try:
-        min_value = min(st.session_state["width_list"])
-        max_value = max(st.session_state["width_list"])
-        print(st.session_state.df_points)
-        points = (
-            alt.Chart(st.session_state.df_points)
-            .mark_line()
-            .encode(
-                x=alt.X("frame"),
-                y=alt.Y(
-                    "values:Q",
-                    scale=alt.Scale(domain=[min_value - 0.2, max_value + 0.2]),
-                ),
-                color="seconds_count:N",
-            )
-            .properties(width=1000)
-            .configure_axis(labelFontSize=20, titleFontSize=20)
-            .configure_legend(titleFontSize=20)
-        )
-        # Update plot every quarter of a second
-        if st.session_state.df_points["frame"].max() % 6 == 0:
-            plot_area.altair_chart(points)
-        # plot_area.altair_chart(points)
-    except Exception as e:
-        print(repr(e))
+# Function to open video using OpenCV
 
 
 # Elements
