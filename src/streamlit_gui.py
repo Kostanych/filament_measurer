@@ -169,9 +169,10 @@ if stop_button:
     logger.info(f"BUTTON Stop")
     st.session_state.play = False
     st.session_state.width_list = []
-    if "cap" in st.session_state:
+    if st.session_state.cap:
         st.session_state.cap.release()
-    update_rolling_plot(st.session_state["plot_area"])
+    if st.session_state["width_list"]:
+        update_rolling_plot(st.session_state["plot_area"])
 
 if video_file is not None:
     # Get filename, set title frame
