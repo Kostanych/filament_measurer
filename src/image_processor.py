@@ -170,7 +170,7 @@ def update_rolling_plot(plot_area):
     try:
         min_value = st.session_state.df_points["values"].min()
         max_value = st.session_state.df_points["values"].max()
-        print(st.session_state.df_points)
+        # print(st.session_state.df_points)
         points = (
             alt.Chart(st.session_state.df_points)
             .mark_line()
@@ -223,18 +223,21 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     Returns:
         melted dataframe.
     """
+    # logger.info(f"MEAN 1: {st.session_state.mean_1}")
+    # logger.info(f"MEAN 2: {st.session_state.mean_2}")
     df = pd.DataFrame(
         {
             "Mean 1s": st.session_state.mean_1,
             "Mean 10s": st.session_state.mean_2,
         }
     )
+    # logger.info(f"FIRST DF:\n {df}")
     df["frame"] = df.index
     # Cut dataframe to represent X seconds of work.
     max_frame = df.frame.max()
     df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
     df = df.melt("frame", var_name="seconds_count", value_name="values")
-    print(df)
+    # logger.info(f"MELTED DF:\n {df}")
     return df
 
 

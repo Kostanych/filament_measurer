@@ -87,7 +87,7 @@ video_file = st.sidebar.file_uploader(
     type=["mp4", "avi", "mov"],
 )
 play_button = st.sidebar.button("Play", key="play_button", on_click=open_video)
-stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop)
+stop_button = st.sidebar.button("Stop", key="stop_button")#, on_click=stop)
 # frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
 # show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
 #                                    disabled=st.session_state.disabled)
@@ -99,6 +99,7 @@ mask_radio = st.sidebar.radio(
     ["Image", "Mask"],
     # on_change=mask_switcher
 )
+
 
 # Image display area
 col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
