@@ -267,6 +267,22 @@ def update_title_frame(file_path):
         st.session_state.title_frame = frame
 
 
+def connect_camera():
+    """Try to open not only default camera"""
+    camera_index = None
+    for i in range(5):  # Try different indices, like 0 to 4
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            camera_index = i
+            break
+
+    if camera_index is not None:
+        st.session_state.cap = cv2.VideoCapture(camera_index)
+        st.write("Camera connected successfully!")
+    else:
+        st.write("Couldn't find a connected camera.")
+
+
 def open_video_source():
     """Open a video, return cap into session state"""
     logger = get_logger("OPEN VIDEO", level=logging_level)
@@ -279,7 +295,8 @@ def open_video_source():
         st.session_state.cap = cv2.VideoCapture(video_path)
     elif st.session_state["source"] == "USB Device":
         logger.info("Video from USB")
-        st.session_state.cap = cv2.VideoCapture(0)
+        # st.session_state.cap = cv2.VideoCapture(0)
+        connect_camera()
     else:
         logger.info("Select the video first!")
     # _, st.session_state.title_frame = st.session_state.cap.read()
@@ -301,5 +318,3 @@ def stop():
 
     if st.session_state["width_list"]:
         update_rolling_plot(st.session_state["plot_area"])
-
-
