@@ -1,3 +1,5 @@
+import logging
+
 import cv2
 import numpy as np
 from scipy.optimize import curve_fit
@@ -8,9 +10,11 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from utils import get_logger
+from utils import get_logger, check_variables
+import logging
 
-logger = get_logger("IMAGE PROCESSOR")
+logging_level = logging.INFO
+logging_level = logging.DEBUG
 
 
 def load_image_into_numpy_array(path):
@@ -41,6 +45,8 @@ def process_image(frame, verbose=0):
     Returns:
         Masked frame and mean width of the filament
     """
+    logger = get_logger("IMAGE PROCESSOR", level=logging_level)
+    check_variables()
     image_np = np.array(frame)
 
     # Example processing: Convert to grayscale and apply thresholding
@@ -152,6 +158,8 @@ def calculate_pixel_multiplier(angle):
 
 def get_video_filename():
     """Get file name"""
+    logger = get_logger("GET VIDEO FILENAME", level=logging_level)
+    check_variables()
     logger.info("GET FILENAME...")
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filename = ROOT_DIR + "/data/input/" + st.session_state["filename"]
@@ -167,6 +175,7 @@ def update_rolling_plot(plot_area):
     Args:
         plot_area: place to display the plot.
     """
+    check_variables()
     try:
         min_value = st.session_state.df_points["values"].min()
         max_value = st.session_state.df_points["values"].max()
@@ -196,11 +205,13 @@ def update_rolling_plot(plot_area):
 
 def change_calibration_multiplier():
     """The calibration multiplier is used to estimate the current width"""
+    logger = get_logger("CALIBRATION MULTIPLIER", level=logging_level)
+    check_variables()
     print(f"width      {st.session_state.width_pxl}")
     print(f"reference: {st.session_state.reference}")
     try:
         st.session_state.width_multiplier = (
-            st.session_state.reference / st.session_state.width_pxl
+                st.session_state.reference / st.session_state.width_pxl
         )
     except Exception as e:
         logger.info(repr(e))
@@ -210,6 +221,8 @@ def change_calibration_multiplier():
 
 def mask_switcher(mask_radio):
     """Switcher mask/image"""
+    logger = get_logger("MASK SWITCHER", level=logging_level)
+    check_variables()
     logger.info(f"BUTTON Mask")
     if mask_radio == "Image":
         st.session_state.show_mask = False
@@ -223,6 +236,7 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     Returns:
         melted dataframe.
     """
+    check_variables()
     # logger.info(f"MEAN 1: {st.session_state.mean_1}")
     # logger.info(f"MEAN 2: {st.session_state.mean_2}")
     df = pd.DataFrame(
@@ -241,18 +255,30 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     return df
 
 
-def open_video():
+def update_title_frame(file_path):
+    # Get first frame
+    # logger = get_logger('TITLE FRAME', level=logging_level)
+
+    title_cap = cv2.VideoCapture(file_path)
+    ret, frame = title_cap.read()
+    if ret:
+        _, width = process_image(frame=frame, verbose=0)
+        st.session_state.width_pxl = width
+        st.session_state.title_frame = frame
+
+
+def open_video_source():
     """Open a video, return cap into session state"""
+    logger = get_logger("OPEN VIDEO", level=logging_level)
+
     if st.session_state.cap:
         st.session_state.cap.release()
     if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
-        logger.info("VIDEO FROM FILE")
+        logger.info("Video from file")
         video_path = st.session_state["video_path"]
         st.session_state.cap = cv2.VideoCapture(video_path)
-    elif ("video_path" in st.session_state) and (
-        st.session_state["source"] == "USB Device"
-    ):
-        logger.info("VIDEO FROM USB")
+    elif st.session_state["source"] == "USB Device":
+        logger.info("Video from USB")
         st.session_state.cap = cv2.VideoCapture(0)
     else:
         logger.info("Select the video first!")
@@ -261,7 +287,19 @@ def open_video():
 
 def stop():
     """Stop the cap"""
+    logger = get_logger("STOP VIDEO", level=logging_level)
+
+    check_variables()
     logger.info(f"BUTTON Stop")
     st.session_state.play = False
+    logger.info(f"st.session_state.play:   {st.session_state.play}")
     if st.session_state.cap:
         st.session_state.cap.release()
+        logger.debug('Cap released')
+
+    # st.session_state.width_list = []
+
+    if st.session_state["width_list"]:
+        update_rolling_plot(st.session_state["plot_area"])
+
+

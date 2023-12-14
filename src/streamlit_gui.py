@@ -7,9 +7,13 @@ import pandas as pd
 import streamlit as st
 
 from image_processor import *
-from utils import mean_rolling
+from utils import mean_rolling, get_logger
+import logging
 
-logger = get_logger("STREAMLIT GUI")
+# logging_level = logging.INFO
+logging_level = logging.DEBUG
+
+logger = get_logger("STREAMLIT GUI", level=logging_level)
 st.set_page_config(layout="wide")
 
 st.title("Filament Measurer")
@@ -21,39 +25,12 @@ st.session_state.pixel_width_multiplier = 1
 if "title_frame" not in st.session_state:
     st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
 
+
 # st.session_state.play_button_disabled = False
 # st.session_state.stop_button_disabled = True
 # st.session_state.disabled = False
 
-logger.info("session_state variables check")
-if "width_list" not in st.session_state:
-    st.session_state["width_list"] = []
-if "source" not in st.session_state:
-    st.session_state["source"] = "File"
-if "cap" not in st.session_state:
-    st.session_state["cap"] = None
-if "show_mask" not in st.session_state:
-    st.session_state["show_mask"] = False
-if "show_every_n_frame" not in st.session_state:
-    st.session_state["show_every_n_frame"] = 1
-if "df_points" not in st.session_state:
-    st.session_state["df_points"] = pd.DataFrame()
-if "width_pxl" not in st.session_state:
-    st.session_state["width_pxl"] = 1
-if "reference" not in st.session_state:
-    st.session_state["reference"] = 1.75
-if "width_multiplier" not in st.session_state:
-    st.session_state["width_multiplier"] = 1
-if "rolling_1s" not in st.session_state:
-    st.session_state["rolling_1s"] = 0
-if "rolling_10s" not in st.session_state:
-    st.session_state["rolling_10s"] = 0
-if "mean_1" not in st.session_state:
-    st.session_state["mean_1"] = []
-if "mean_2" not in st.session_state:
-    st.session_state["mean_2"] = []
-if "fps" not in st.session_state:
-    st.session_state["fps"] = 24
+check_variables()
 
 
 # Functions
@@ -66,8 +43,10 @@ def load_video(video_file):
     """
     st.session_state["filename"] = video_file.name
     st.session_state["video_path"] = get_video_filename()
-    open_video()
-    _, st.session_state.title_frame = st.session_state.cap.read()
+    logger.info(f"video_path:    {st.session_state.video_path}")
+    # open_video_source()
+    update_title_frame(st.session_state.video_path)
+
 
 
 # Function to open video using OpenCV
@@ -86,8 +65,8 @@ video_file = st.sidebar.file_uploader(
     "Select a video file",
     type=["mp4", "avi", "mov"],
 )
-play_button = st.sidebar.button("Play", key="play_button", on_click=open_video)
-stop_button = st.sidebar.button("Stop", key="stop_button")#, on_click=stop)
+play_button = st.sidebar.button("Play", key="play_button", on_click=open_video_source)
+stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop)
 # frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
 # show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
 #                                    disabled=st.session_state.disabled)
@@ -99,7 +78,6 @@ mask_radio = st.sidebar.radio(
     ["Image", "Mask"],
     # on_change=mask_switcher
 )
-
 
 # Image display area
 col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
@@ -143,7 +121,6 @@ with col12:
         unsafe_allow_html=True,
     )
 
-
 # Logic
 # Change reference multiplier
 if reference:
@@ -156,7 +133,6 @@ if mask_radio == "Image":
 else:
     st.session_state.show_mask = True
 
-
 # Input switcher
 st.session_state.source = input_source
 
@@ -165,21 +141,49 @@ st.session_state.source = input_source
 # else:
 #     st.session_state['show_every_n_frame'] = 10
 
-if stop_button:
-    """Stop the cap"""
-    logger.info(f"BUTTON Stop")
-    st.session_state.play = False
-    st.session_state.width_list = []
-    if st.session_state.cap:
-        st.session_state.cap.release()
-    if st.session_state["width_list"]:
-        update_rolling_plot(st.session_state["plot_area"])
+# if stop_button:
+#     """Stop the cap"""
+#     logger = get_logger("STOP VIDEO", level=logging_level)
+#
+#     check_variables()
+#     logger.info(f"BUTTON Stop")
+#     st.session_state.play = False
+#     logger.info(f"st.session_state.play:   {st.session_state.play}")
+#     if st.session_state.cap:
+#         st.session_state.cap.release()
+#         logger.debug('Cap released')
+#
+#     # st.session_state.width_list = []
+#
+#     if st.session_state["width_list"]:
+#         update_rolling_plot(st.session_state["plot_area"])
 
-if video_file is not None:
+try:
+    logger.debug(f"video_file name:        {video_file.name}")
+except:
+    logger.debug(f"video_file name:        {video_file}")
+logger.debug(f"input_source:           {input_source}")
+
+
+if play_button:
+    st.session_state["play"] = True
+
+
+# if play_button and (input_source == 'USB Device'):
+#     check_variables()
+#     logger.debug('Got the USB Device')
+#     open_video_source()
+#     st.session_state["play"] = True
+
+# If we selected any video file
+if (video_file != None) & (input_source == 'File'):
+    check_variables()
+    logger.debug('Got the Video file')
     # Get filename, set title frame
     if ("filename" not in st.session_state) or (
-        st.session_state.filename != video_file.name
+            st.session_state.filename != video_file.name
     ):
+        logger.debug('Start to load the video')
         load_video(video_file)
     else:
         logger.debug("filename IS in session state")
@@ -205,18 +209,34 @@ if video_file is not None:
 #     return fig
 
 
-if play_button and video_file:
-    logger.info(f"play_button and video_file is TRUE")
-    st.session_state["play"] = True
-    # Process first frame
-    ret, frame = st.session_state.cap.read()
-    if ret:
-        _, width = process_image(frame=frame, verbose=0)
-        st.session_state.width_pxl = width
-    change_calibration_multiplier()
+logger.debug(f"play_button:               {play_button}")
+try:
+    logger.debug(f"video_file:                {video_file.name}")
+except:
+    logger.debug(f"video_file:                {video_file}")
+logger.debug(f"st.session_state.play:     {st.session_state.play}")
+
+
+
+
+# if play_button and video_file:
+#     check_variables()
+#     logger.info(f"play_button and video_file is TRUE")
+#     st.session_state["play"] = True
+#     # Process first frame
+#     ret, frame = st.session_state.cap.read()
+#     if ret:
+#         _, width = process_image(frame=frame, verbose=0)
+#         st.session_state.width_pxl = width
+#     change_calibration_multiplier()
+
+
+logger.debug(f"st.session_state.cap:               {st.session_state.cap}")
+logger.debug(f"st.session_state.play:              {st.session_state.play}")
 
 # Play video
 if st.session_state.cap and st.session_state.play:
+    check_variables()
     print(f"PLAY   {st.session_state['play']}")
     cap = st.session_state.cap
     while cap.isOpened():
@@ -237,6 +257,7 @@ if st.session_state.cap and st.session_state.play:
                 source = frame
 
             # Process frame
+            check_variables()
             source, angle = draw_angle_line(source.copy(), mask)
             angle_multiplier = calculate_pixel_multiplier(angle)
             width_pxl = width_pxl * angle_multiplier
@@ -280,16 +301,24 @@ if st.session_state.cap and st.session_state.play:
             vid_area.image(source)
             time.sleep(1 / fps)  # keep the fps the same as the original fps
 
-            chart_data = make_result_df()
+            try:
+                chart_data = make_result_df()
+            except Exception as e:
+                print(repr(e))
+                chart_data = pd.DataFrame()
+
 
             # Plot results
-            st.session_state.df_points = chart_data
-            # Update variables
-            update_rolling_plot(st.session_state["plot_area"])
-            difference.markdown(
-                f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
-                unsafe_allow_html=True,
-            )
+            try:
+                st.session_state.df_points = chart_data
+                # Update variables
+                update_rolling_plot(st.session_state["plot_area"])
+                difference.markdown(
+                    f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
+                    unsafe_allow_html=True,
+                )
+            except Exception as e:
+                print(repr(e))
 
         else:
             # End of video
