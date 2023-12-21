@@ -84,6 +84,7 @@ col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
 with col1:
     st.header("Video")
     vid_area = st.image(st.session_state.title_frame)
+    st.session_state.vid_area = vid_area
 with col2:
     st.header("Results")
     width_pxl_area = st.markdown(

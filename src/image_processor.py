@@ -9,6 +9,7 @@ import altair as alt
 
 import pandas as pd
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer
 
 from utils import get_logger, check_variables
 import logging
@@ -269,6 +270,7 @@ def update_title_frame(file_path):
 
 def connect_camera():
     """Try to open not only default camera"""
+    st.session_state.vid_area = webrtc_streamer(key="sample")
     camera_index = None
     for i in range(5):  # Try different indices, like 0 to 4
         cap = cv2.VideoCapture(i)
