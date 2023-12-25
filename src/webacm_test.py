@@ -14,4 +14,9 @@ def video_frame_callback(frame):
     return av.VideoFrame.from_ndarray(flipped, format="bgr24")
 
 
-webrtc_streamer(key="example", video_frame_callback=video_frame_callback)
+webrtc_streamer(key="example",
+                video_frame_callback=video_frame_callback,
+                rtc_configuration={  # Add this line
+                    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+                }
+                )
