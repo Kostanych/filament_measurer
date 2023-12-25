@@ -4,7 +4,8 @@ from image_processor import *
 from input_source import *
 from gui_logic import *
 from plot import *
-from utils import mean_rolling, get_logger
+from files import *
+from utils import *
 import logging
 
 # logging_level = logging.INFO
@@ -25,11 +26,15 @@ reference = st.sidebar.number_input(
     value=float(1.75),
     # on_change=change_calibration_multiplier
 )
+st.session_state["reference"] = reference
 
 input_source = st.sidebar.radio('Input Source', options=['File', 'USB Device'])
+st.session_state["source"] = input_source
 video_file = st.sidebar.file_uploader(
     "Select a video file",
-    type=["mp4", "avi", "mov"],)
+    type=["mp4", "avi", "mov"],
+    # on_change=load_video
+)
 play_button = st.sidebar.button("Play", key="play_button", on_click=open_video_source)
 stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop)
 # frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
@@ -137,36 +142,31 @@ except:
 logger.debug(f"input_source:           {input_source}")
 
 
-if play_button:
-    st.session_state["play"] = True
+if video_file:
+    load_video(video_file)
 
 
-# if play_button and (input_source == 'USB Device'):
+
+# # If we selected any video file
+# if (video_file != None) & (input_source == 'File'):
 #     check_variables()
-#     logger.debug('Got the USB Device')
-#     open_video_source()
-#     st.session_state["play"] = True
-
-# If we selected any video file
-if (video_file != None) & (input_source == 'File'):
-    check_variables()
-    logger.debug('Got the Video file')
-    # Get filename, set title frame
-    if ("filename" not in st.session_state) or (
-            st.session_state.filename != video_file.name
-    ):
-        logger.debug('Start to load the video')
-        load_video(video_file)
-    else:
-        logger.debug("filename IS in session state")
-    vid_area.image(st.session_state.title_frame)
+#     logger.debug('Got the Video file')
+#     # Get filename, set title frame
+#     if ("filename" not in st.session_state) or (
+#             st.session_state.filename != video_file.name
+#     ):
+#         logger.debug('Start to load the video')
+#         load_video(video_file)
+#     else:
+#         logger.debug("filename IS in session state")
+#     vid_area.image(st.session_state.title_frame)
 
 logger.debug(f"play_button:               {play_button}")
 try:
     logger.debug(f"video_file:                {video_file.name}")
 except:
     logger.debug(f"video_file:                {video_file}")
-logger.debug(f"st.session_state.play:     {st.session_state.play}")
+# logger.debug(f"st.session_state.play:     {st.session_state.play}")
 
 
 # if play_button and video_file:
@@ -182,7 +182,7 @@ logger.debug(f"st.session_state.play:     {st.session_state.play}")
 
 
 logger.debug(f"st.session_state.cap:               {st.session_state.cap}")
-logger.debug(f"st.session_state.play:              {st.session_state.play}")
+# logger.debug(f"st.session_state.play:              {st.session_state.play}")
 
 # Play video
 if st.session_state.cap and st.session_state.play:

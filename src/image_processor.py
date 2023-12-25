@@ -184,38 +184,8 @@ def mask_switcher(mask_radio):
         st.session_state.show_mask = True
 
 
-def open_video_source():
-    """Open a video, return cap into session state"""
-    logger = get_logger("OPEN VIDEO", level=logging_level)
 
-    if st.session_state.cap:
-        st.session_state.cap.release()
-    if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
-        logger.info("Video from file")
-        video_path = st.session_state["video_path"]
-        st.session_state.cap = cv2.VideoCapture(video_path)
-    elif st.session_state["source"] == "USB Device":
-        logger.info("Video from USB")
-        # st.session_state.cap = cv2.VideoCapture(0)
-        connect_camera()
 
-        # st.session_state.vid_area.image(webrtc_streamer(key="example", video_frame_callback=add_info_on_the_frame))
-        # webrtc_streamer(key="example", video_frame_callback=add_info_on_the_frame)
-        # st.session_state.vid_area = webrtc_streamer(
-        #     key="webcam_input",
-        #     video_frame_callback=add_info_on_the_frame,
-        #     rtc_configuration={  # Add this line
-        #         "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-        #     },
-        #     video_html_attrs=VideoHTMLAttributes(
-        #         autoPlay=True,
-        #         # controls=True,
-        #         # style={"width": "100%"},
-        #         muted=True)
-        # )
-    else:
-        logger.info("Select the video first!")
-    # _, st.session_state.title_frame = st.session_state.cap.read()
 
 
 def connect_camera():
