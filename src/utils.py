@@ -1,9 +1,13 @@
 """Utilities file"""
-import logging
 import sys
 
 import pandas as pd
+import numpy as np
 import streamlit as st
+import logging
+
+logging_level = logging.INFO
+logging_level = logging.DEBUG
 
 
 def get_logger(name: str = None, level=logging.INFO):
@@ -48,6 +52,8 @@ def mean_rolling(data, fps, seconds=1):
 def check_variables():
     logger = get_logger('VARIABLES CHECKER', level=logging.DEBUG)
     logger.info("session_state variables check")
+    if "title_frame" not in st.session_state:
+        st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
     if "width_list" not in st.session_state:
         st.session_state["width_list"] = []
     if "source" not in st.session_state:
@@ -81,3 +87,29 @@ def check_variables():
         st.session_state["width_pxl"] = 1
     if st.session_state["width_pxl"] == 0:
         st.session_state["width_pxl"] = 1
+
+
+def make_result_df(num_seconds=2) -> pd.DataFrame():
+    """
+    Consumes dataframe and melt it to display on the Altair plot
+    Returns:
+        melted dataframe.
+    """
+    check_variables()
+    # logger.info(f"MEAN 1: {st.session_state.mean_1}")
+    # logger.info(f"MEAN 2: {st.session_state.mean_2}")
+    df = pd.DataFrame(
+        {
+            "Mean 1s": st.session_state.mean_1,
+            "Mean 10s": st.session_state.mean_2,
+        }
+    )
+    # logger.info(f"FIRST DF:\n {df}")
+    df["frame"] = df.index
+    # Cut dataframe to represent X seconds of work.
+    max_frame = df.frame.max()
+    df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
+    df = df.melt("frame", var_name="seconds_count", value_name="values")
+    # logger.info(f"MELTED DF:\n {df}")
+    return df
+

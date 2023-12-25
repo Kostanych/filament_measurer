@@ -1,15 +1,15 @@
 import logging
 
+import av
 import cv2
 import numpy as np
 from scipy.optimize import curve_fit
-import os.path
 
-import altair as alt
 
 import pandas as pd
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer
+from streamlit_webrtc import webrtc_streamer, VideoHTMLAttributes
+
 
 from utils import get_logger, check_variables
 import logging
@@ -157,53 +157,6 @@ def calculate_pixel_multiplier(angle):
     return pixel_multiplier
 
 
-def get_video_filename():
-    """Get file name"""
-    logger = get_logger("GET VIDEO FILENAME", level=logging_level)
-    check_variables()
-    logger.info("GET FILENAME...")
-    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = ROOT_DIR + "/data/input/" + st.session_state["filename"]
-    logger.info(f"st.session_state['filename']  {st.session_state['filename']}")
-    logger.info(f"filename  {os.path.normpath(filename)}")
-    # Return a normalized path.
-    return os.path.normpath(filename)
-
-
-def update_rolling_plot(plot_area):
-    """
-    Display plot based on data from session state.
-    Args:
-        plot_area: place to display the plot.
-    """
-    check_variables()
-    try:
-        min_value = st.session_state.df_points["values"].min()
-        max_value = st.session_state.df_points["values"].max()
-        # print(st.session_state.df_points)
-        points = (
-            alt.Chart(st.session_state.df_points)
-            .mark_line()
-            .encode(
-                x=alt.X("frame"),
-                y=alt.Y(
-                    "values:Q",
-                    scale=alt.Scale(domain=[min_value - 0.2, max_value + 0.2]),
-                ),
-                color="seconds_count:N",
-            )
-            .properties(width=1000)
-            .configure_axis(labelFontSize=20, titleFontSize=20)
-            .configure_legend(titleFontSize=20)
-        )
-        # Update plot every quarter of a second
-        # if st.session_state.df_points["frame"].max() % 6 == 0:
-        #     plot_area.altair_chart(points)
-        plot_area.altair_chart(points)
-    except Exception as e:
-        print(repr(e))
-
-
 def change_calibration_multiplier():
     """The calibration multiplier is used to estimate the current width"""
     logger = get_logger("CALIBRATION MULTIPLIER", level=logging_level)
@@ -231,45 +184,42 @@ def mask_switcher(mask_radio):
         st.session_state.show_mask = True
 
 
-def make_result_df(num_seconds=2) -> pd.DataFrame():
-    """
-    Consumes dataframe and melt it to display on the Altair plot
-    Returns:
-        melted dataframe.
-    """
-    check_variables()
-    # logger.info(f"MEAN 1: {st.session_state.mean_1}")
-    # logger.info(f"MEAN 2: {st.session_state.mean_2}")
-    df = pd.DataFrame(
-        {
-            "Mean 1s": st.session_state.mean_1,
-            "Mean 10s": st.session_state.mean_2,
-        }
-    )
-    # logger.info(f"FIRST DF:\n {df}")
-    df["frame"] = df.index
-    # Cut dataframe to represent X seconds of work.
-    max_frame = df.frame.max()
-    df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
-    df = df.melt("frame", var_name="seconds_count", value_name="values")
-    # logger.info(f"MELTED DF:\n {df}")
-    return df
+def open_video_source():
+    """Open a video, return cap into session state"""
+    logger = get_logger("OPEN VIDEO", level=logging_level)
 
+    if st.session_state.cap:
+        st.session_state.cap.release()
+    if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
+        logger.info("Video from file")
+        video_path = st.session_state["video_path"]
+        st.session_state.cap = cv2.VideoCapture(video_path)
+    elif st.session_state["source"] == "USB Device":
+        logger.info("Video from USB")
+        # st.session_state.cap = cv2.VideoCapture(0)
+        connect_camera()
 
-def update_title_frame(file_path):
-    # Get first frame
-    # logger = get_logger('TITLE FRAME', level=logging_level)
-
-    title_cap = cv2.VideoCapture(file_path)
-    ret, frame = title_cap.read()
-    if ret:
-        _, width = process_image(frame=frame, verbose=0)
-        st.session_state.width_pxl = width
-        st.session_state.title_frame = frame
+        # st.session_state.vid_area.image(webrtc_streamer(key="example", video_frame_callback=add_info_on_the_frame))
+        # webrtc_streamer(key="example", video_frame_callback=add_info_on_the_frame)
+        # st.session_state.vid_area = webrtc_streamer(
+        #     key="webcam_input",
+        #     video_frame_callback=add_info_on_the_frame,
+        #     rtc_configuration={  # Add this line
+        #         "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+        #     },
+        #     video_html_attrs=VideoHTMLAttributes(
+        #         autoPlay=True,
+        #         # controls=True,
+        #         # style={"width": "100%"},
+        #         muted=True)
+        # )
+    else:
+        logger.info("Select the video first!")
+    # _, st.session_state.title_frame = st.session_state.cap.read()
 
 
 def connect_camera():
-    """Try to open not only default camera"""
+    """Try to open camera using OpenCV"""
     st.session_state.vid_area = webrtc_streamer(key="sample")
     camera_index = None
     for i in range(5):  # Try different indices, like 0 to 4
@@ -285,38 +235,46 @@ def connect_camera():
         st.write("Couldn't find a connected camera.")
 
 
-def open_video_source():
-    """Open a video, return cap into session state"""
-    logger = get_logger("OPEN VIDEO", level=logging_level)
+def add_info_on_the_frame(frame):
+    """Draw text and line info on the frame"""
+    logger = get_logger("ADD INFO ON THE FRAME")
+    # When the video starts
+    mask, width_pxl = process_image(frame=frame, verbose=0)
+    st.session_state.width_pxl = width_pxl
+    # show_mask is missed sometimes. need to fix it
+    try:
+        if st.session_state.show_mask:
+            source = mask
+        else:
+            source = frame
+        logger.debug(f"SOURCE IS MASK:   {st.session_state.show_mask}")
+    except Exception as e:
+        print(repr(e))
+        source = frame
 
-    if st.session_state.cap:
-        st.session_state.cap.release()
-    if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
-        logger.info("Video from file")
-        video_path = st.session_state["video_path"]
-        st.session_state.cap = cv2.VideoCapture(video_path)
-    elif st.session_state["source"] == "USB Device":
-        logger.info("Video from USB")
-        # st.session_state.cap = cv2.VideoCapture(0)
-        connect_camera()
-    else:
-        logger.info("Select the video first!")
-    # _, st.session_state.title_frame = st.session_state.cap.read()
-
-
-def stop():
-    """Stop the cap"""
-    logger = get_logger("STOP VIDEO", level=logging_level)
-
+    # Process frame
     check_variables()
-    logger.info(f"BUTTON Stop")
-    st.session_state.play = False
-    logger.info(f"st.session_state.play:   {st.session_state.play}")
-    if st.session_state.cap:
-        st.session_state.cap.release()
-        logger.debug('Cap released')
+    source, angle = draw_angle_line(source.copy(), mask)
+    angle_multiplier = calculate_pixel_multiplier(angle)
+    width_pxl = width_pxl * angle_multiplier
+    width_mm = width_pxl * angle_multiplier * st.session_state.width_multiplier
+    st.session_state.width_list.append(width_mm)
+    # width_multiplier_calibrated = change_calibration_multiplier()
 
-    # st.session_state.width_list = []
+    return source, width_pxl, width_mm    # v2
+    # return av.VideoFrame.from_ndarray(source, format="bgr24")    # v3
 
-    if st.session_state["width_list"]:
-        update_rolling_plot(st.session_state["plot_area"])
+
+def update_title_frame(file_path):
+    # Get first frame
+    # logger = get_logger('TITLE FRAME', level=logging_level)
+
+    title_cap = cv2.VideoCapture(file_path)
+    ret, frame = title_cap.read()
+    if ret:
+        _, width = process_image(frame=frame, verbose=0)
+        st.session_state.width_pxl = width
+        st.session_state.title_frame = frame
+
+
+
