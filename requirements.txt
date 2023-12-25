@@ -8,3 +8,6 @@ Pillow==9.4.0
 streamlit==1.26.0
 scipy==1.10.1
 streamlit-webrtc==0.47.1
+
+av~=11.0.0
+altair~=5.0.1
