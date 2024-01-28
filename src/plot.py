@@ -2,8 +2,6 @@
 import streamlit as st
 import altair as alt
 
-from utils import check_variables
-
 
 def update_rolling_plot(plot_area):
     """
@@ -11,7 +9,6 @@ def update_rolling_plot(plot_area):
     Args:
         plot_area: place to display the plot.
     """
-    check_variables()
     try:
         min_value = st.session_state.df_points["values"].min()
         max_value = st.session_state.df_points["values"].max()

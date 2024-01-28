@@ -15,7 +15,6 @@ def get_video_filename():
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filename = ROOT_DIR + "/data/input/" + st.session_state["filename"]
     logger.info(f"st.session_state['filename']  {st.session_state['filename']}")
-    logger.info(f"filename  {os.path.normpath(filename)}")
     # Return a normalized path.
     return os.path.normpath(filename)
 

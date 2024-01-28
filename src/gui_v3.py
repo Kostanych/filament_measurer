@@ -8,36 +8,59 @@ from files import *
 from utils import *
 import logging
 
+
+def update_status(new_message):
+    st.session_state['status_message'] = new_message
+    status_bar.text(new_message)
+
+
 # logging_level = logging.INFO
 logging_level = logging.DEBUG
 
 logger = get_logger("STREAMLIT GUI", level=logging_level)
 st.set_page_config(layout="wide")
 
-st.title("Filament Measurer")
-st.sidebar.header("Control Panel")
-
 # Session variables
-check_variables()
+init_variables()
 app_state = AppState()
 
-# Elements
+# Streamlit elements
+status_bar = st.empty()
+status_bar.text(st.session_state['status_message'])
+st.title("Filament Measurer")
+
+# Sidebar
+st.sidebar.header("Control Panel")
 reference = st.sidebar.number_input(
     "Reference width (mm):",
     value=float(1.75),
     # on_change=change_calibration_multiplier
 )
 st.session_state["reference"] = reference
-
-input_source = st.sidebar.radio('Input Source', options=['File', 'USB Device'])
+input_source = st.sidebar.radio(
+    'Input Source',
+    options=['File', 'USB Device']
+)
 st.session_state["source"] = input_source
 video_file = st.sidebar.file_uploader(
     "Select a video file",
     type=["mp4", "avi", "mov"],
     # on_change=load_video
 )
-play_button = st.sidebar.button("Play", key="play_button", on_click=open_video_source)
-stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop, args=app_state)
+
+# Show PLAY button only if you want to play video file
+if input_source == 'File':
+    play_button = st.sidebar.button("Play",
+                                    key="play_button",
+                                    on_click=open_video_source,
+                                    args=(app_state,)
+                                    )
+
+stop_button = st.sidebar.button("Stop",
+                                key="stop_button",
+                                on_click=stop,
+                                args=(app_state,)
+                                )
 # frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
 # show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
 #                                    disabled=st.session_state.disabled)
@@ -47,9 +70,8 @@ stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop, args=a
 mask_radio = st.sidebar.radio(
     "Mask/Image",
     ["Image", "Mask"],
-    # on_change=mask_switcher
+    key='Mask_or_image',
 )
-
 
 
 # Image display area
@@ -101,6 +123,7 @@ with col12:
         unsafe_allow_html=True,
     )
 
+
 # Logic
 
 
@@ -116,7 +139,6 @@ if mask_radio == "Image":
 else:
     app_state.update(show_mask=True)
     st.session_state.show_mask = True
-
 
 # if frames_radio == '100%':
 #     st.session_state['show_every_n_frame'] = 1
@@ -146,11 +168,8 @@ except:
     logger.debug(f"video_file name:        {video_file}")
 logger.debug(f"input_source:           {input_source}")
 
-
 if video_file:
     load_video(video_file)
-
-
 
 # # If we selected any video file
 # if (video_file != None) & (input_source == 'File'):
@@ -165,14 +184,6 @@ if video_file:
 #     else:
 #         logger.debug("filename IS in session state")
 #     vid_area.image(st.session_state.title_frame)
-
-logger.debug(f"play_button:               {play_button}")
-try:
-    logger.debug(f"video_file:                {video_file.name}")
-except:
-    logger.debug(f"video_file:                {video_file}")
-# logger.debug(f"st.session_state.play:     {st.session_state.play}")
-
 
 # if play_button and video_file:
 #     check_variables()
@@ -191,7 +202,7 @@ logger.debug(f"st.session_state.cap:               {st.session_state.cap}")
 
 # Play video
 if st.session_state.cap and st.session_state.play:
-    check_variables()
+    init_variables()
     print(f"PLAY   {st.session_state['play']}")
     cap = st.session_state.cap
     while cap.isOpened():
@@ -269,18 +280,12 @@ if st.session_state.cap and st.session_state.play:
             st.session_state.play = False
             # st.session_state.width_list = []
             cap.release()
-            # width_list = []
+width_list = []
 
-        # plot_area = st.pyplot(meanplot())
+# plot_area = st.pyplot(meanplot())
 
 # vid_area = st.image(st.session_state.title_frame)
 
 # else:
 #     # End of video reached
 #     st.session_state.play = False
-
-
-
-
-
-

@@ -71,9 +71,11 @@ def mean_rolling(data, fps, seconds=1):
     return pd.Series(data).rolling(window=n).mean().iloc[n - 1:].values[-1]
 
 
-def check_variables():
+def init_variables():
     logger = get_logger('VARIABLES CHECKER', level=logging.DEBUG)
     logger.info("session_state variables check")
+    if 'status_message' not in st.session_state:
+        st.session_state['status_message'] = 'Ready to work!'
     if "title_frame" not in st.session_state:
         st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
     # if "width_list" not in st.session_state:
@@ -117,7 +119,6 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     Returns:
         melted dataframe.
     """
-    check_variables()
     # logger.info(f"MEAN 1: {st.session_state.mean_1}")
     # logger.info(f"MEAN 2: {st.session_state.mean_2}")
     df = pd.DataFrame(

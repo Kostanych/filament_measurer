@@ -11,7 +11,7 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoHTMLAttributes
 
 
-from utils import get_logger, check_variables
+from utils import get_logger
 import logging
 
 logging_level = logging.INFO
@@ -161,7 +161,6 @@ def calculate_pixel_multiplier(angle):
 def change_calibration_multiplier():
     """The calibration multiplier is used to estimate the current width"""
     logger = get_logger("CALIBRATION MULTIPLIER", level=logging_level)
-    check_variables()
     print(f"width      {st.session_state.width_pxl}")
     print(f"reference: {st.session_state.reference}")
     try:
@@ -177,7 +176,6 @@ def change_calibration_multiplier():
 def mask_switcher(mask_radio):
     """Switcher mask/image"""
     logger = get_logger("MASK SWITCHER", level=logging_level)
-    check_variables()
     logger.info(f"BUTTON Mask")
     if mask_radio == "Image":
         st.session_state.show_mask = False

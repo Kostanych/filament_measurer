@@ -29,7 +29,7 @@ if "title_frame" not in st.session_state:
 # st.session_state.stop_button_disabled = True
 # st.session_state.disabled = False
 
-check_variables()
+init_variables()
 
 
 # Functions
@@ -168,14 +168,14 @@ if play_button:
 
 
 if play_button and (input_source == 'USB Device'):
-    check_variables()
+    init_variables()
     logger.debug('Got the USB Device')
     open_video_source()
     st.session_state["play"] = True
 
 # If we selected any video file
 if (video_file != None) & (input_source == 'File'):
-    check_variables()
+    init_variables()
     logger.debug('Got the Video file')
     # Get filename, set title frame
     if ("filename" not in st.session_state) or (
@@ -234,7 +234,7 @@ logger.debug(f"st.session_state.play:              {st.session_state.play}")
 
 # Play video
 if st.session_state.cap and st.session_state.play:
-    check_variables()
+    init_variables()
     print(f"PLAY   {st.session_state['play']}")
     cap = st.session_state.cap
     while cap.isOpened():
