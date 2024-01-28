@@ -19,6 +19,7 @@ st.sidebar.header("Control Panel")
 
 # Session variables
 check_variables()
+app_state = AppState()
 
 # Elements
 reference = st.sidebar.number_input(
@@ -36,7 +37,7 @@ video_file = st.sidebar.file_uploader(
     # on_change=load_video
 )
 play_button = st.sidebar.button("Play", key="play_button", on_click=open_video_source)
-stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop)
+stop_button = st.sidebar.button("Stop", key="stop_button", on_click=stop, args=app_state)
 # frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
 # show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
 #                                    disabled=st.session_state.disabled)
@@ -60,7 +61,8 @@ with col1:
         vid_area = st.image(image_input())
         st.session_state.vid_area = vid_area
     elif input_source == 'USB Device':
-        vid_area = webcam_input()
+        # vid_area = webcam_input(app_state)
+        vid_area = webcam_input(app_state)
 with col2:
     st.header("Results")
     width_pxl_area = st.markdown(
@@ -83,7 +85,8 @@ with col3:
 # Plot display area
 col11, col12 = st.columns([0.8, 0.2])
 with col11:
-    if not st.session_state["width_list"]:
+    # if not st.session_state["width_list"]:
+    if not app_state.state['width_list']:
         st.session_state["plot_area"] = st.empty()
     else:
         update_rolling_plot(st.session_state["plot_area"])
@@ -108,8 +111,10 @@ if reference:
 
 # """ Switcher mask/image """
 if mask_radio == "Image":
+    app_state.update(show_mask=False)
     st.session_state.show_mask = False
 else:
+    app_state.update(show_mask=True)
     st.session_state.show_mask = True
 
 
@@ -194,7 +199,13 @@ if st.session_state.cap and st.session_state.play:
         if ret:
 
             # Draw info on the frame
-            source, width_pxl, width_mm = add_info_on_the_frame(frame)
+            print(app_state.state)
+            source, width_pxl, width_mm, app_state.state['width_list'] = add_info_on_the_frame(
+                frame,
+                app_state.state['show_mask'],
+                app_state.state['width_multiplier'],
+                app_state.state['width_list']
+            )
 
             # Process variables
             fps = cap.get(cv2.CAP_PROP_FPS)
@@ -203,10 +214,10 @@ if st.session_state.cap and st.session_state.play:
 
             # Plot
             st.session_state.rolling_1s = round(
-                mean_rolling(st.session_state.width_list, fps), 4
+                mean_rolling(app_state.state['width_list'], fps), 4
             )
             st.session_state.rolling_10s = round(
-                mean_rolling(st.session_state.width_list, fps, 10), 4
+                mean_rolling(app_state.state['width_list'], fps, 10), 4
             )
             st.session_state.mean_1.append(st.session_state.rolling_1s)
             st.session_state.mean_2.append(st.session_state.rolling_10s)

@@ -1,4 +1,5 @@
 
+import av
 import streamlit as st
 import numpy as np
 from streamlit_webrtc import webrtc_streamer, VideoHTMLAttributes
@@ -11,17 +12,32 @@ def image_input():
     return st.session_state.title_frame
 
 
-def webcam_input():
-    return webrtc_streamer(
+def webcam_input(app_state):
+    webrtc_streamer(
         key="webcam_input",
-        video_frame_callback=add_info_on_the_frame,
+        video_frame_callback=lambda frame: webcam_callback(frame, app_state),
         rtc_configuration={  # Add this line
-            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}],
+            # "iceTransportPolicy": "relay",
         },
-        video_html_attrs=VideoHTMLAttributes(
-            autoPlay=True,
-            # controls=True,
-            # style={"width": "100%"},
-            muted=True)
+        # video_html_attrs=VideoHTMLAttributes(
+        #     autoPlay=True,
+        #     # controls=True,
+        #     # style={"width": "100%"},
+        #     muted=True),
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
     )
+
+
+def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
+    image = frame.to_ndarray(format="bgr24")
+    image, width_pxl, width_mm = add_info_on_the_frame(
+        image,
+        app_state.show_mask,
+        app_state.width_multiplier
+    )
+    app_state.add_width(width_mm)
+    return av.VideoFrame.from_ndarray(image, format="bgr24")
+
 

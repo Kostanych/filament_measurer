@@ -47,7 +47,7 @@ def process_image(frame, verbose=0):
         Masked frame and mean width of the filament
     """
     logger = get_logger("IMAGE PROCESSOR", level=logging_level)
-    check_variables()
+    # check_variables()
     image_np = np.array(frame)
 
     # Example processing: Convert to grayscale and apply thresholding
@@ -115,6 +115,7 @@ def measure_angle(mask):
 
 def draw_angle_line(frame, mask):
     """Draw angle line"""
+    print('draw angle')
     angle = measure_angle(mask)
     if angle is not None:
         angle_text = f"Angle: {angle:.2f} degrees"
@@ -205,34 +206,40 @@ def connect_camera():
         st.write("Couldn't find a connected camera.")
 
 
-def add_info_on_the_frame(frame):
+def add_info_on_the_frame(frame, show_mask, width_multiplier, width_list):
     """Draw text and line info on the frame"""
+    print('sss')
     logger = get_logger("ADD INFO ON THE FRAME")
+    logger.debug("add_info... started")
+    print('ddd')
     # When the video starts
     mask, width_pxl = process_image(frame=frame, verbose=0)
-    st.session_state.width_pxl = width_pxl
+    width_pxl = width_pxl
     # show_mask is missed sometimes. need to fix it
     try:
-        if st.session_state.show_mask:
+        if show_mask:
             source = mask
         else:
             source = frame
-        logger.debug(f"SOURCE IS MASK:   {st.session_state.show_mask}")
+        logger.debug(f"SOURCE IS MASK:   {show_mask}")
     except Exception as e:
         print(repr(e))
         source = frame
 
     # Process frame
-    check_variables()
+    print('check vars')
+    # check_variables()
     source, angle = draw_angle_line(source.copy(), mask)
     angle_multiplier = calculate_pixel_multiplier(angle)
     width_pxl = width_pxl * angle_multiplier
-    width_mm = width_pxl * angle_multiplier * st.session_state.width_multiplier
-    st.session_state.width_list.append(width_mm)
+    width_mm = width_pxl * angle_multiplier * width_multiplier
+    width_list.append(width_mm)
     # width_multiplier_calibrated = change_calibration_multiplier()
 
-    return source, width_pxl, width_mm    # v2
-    # return av.VideoFrame.from_ndarray(source, format="bgr24")    # v3
+    return source, width_pxl, width_mm, width_list    # v2
+
+
+
 
 
 def update_title_frame(file_path):

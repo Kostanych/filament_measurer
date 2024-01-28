@@ -45,16 +45,7 @@ def launch_video_processing():
         st.session_state.vid_area.image(st.session_state.title_frame)
 
 
-
-
-
-
-
-
-
-
-
-def stop():
+def stop(app_state):
     """Stop the cap"""
     logger = get_logger("STOP VIDEO", level=logging_level)
 
@@ -68,5 +59,9 @@ def stop():
 
     # st.session_state.width_list = []
 
-    if st.session_state["width_list"]:
+    if app_state.state['width_list']:
         update_rolling_plot(st.session_state["plot_area"])
+
+
+
+

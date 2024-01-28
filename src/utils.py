@@ -10,6 +10,28 @@ logging_level = logging.INFO
 logging_level = logging.DEBUG
 
 
+class AppState:
+    """
+    Class for the saving state of the application. Using instead of session_state.
+    """
+    def __init__(self):
+        self.state = {
+            "show_mask": False,
+            "width_multiplier": 1,
+            'width_list': []
+            # Инициализируйте другие параметры здесь
+        }
+        # self.width_list = []
+
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            if key in self.state:
+                self.state[key] = value
+
+    def add_width(self, width_mm):
+        self.width_list.append(width_mm)
+
+
 def get_logger(name: str = None, level=logging.INFO):
     """
     Sets up the logger handlers for jupyter notebook, ipython or python.
@@ -54,14 +76,14 @@ def check_variables():
     logger.info("session_state variables check")
     if "title_frame" not in st.session_state:
         st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
-    if "width_list" not in st.session_state:
-        st.session_state["width_list"] = []
+    # if "width_list" not in st.session_state:
+    #     st.session_state["width_list"] = []
     if "source" not in st.session_state:
         st.session_state["source"] = "File"
     if "cap" not in st.session_state:
         st.session_state["cap"] = None
-    if "show_mask" not in st.session_state:
-        st.session_state["show_mask"] = False
+    # if "show_mask" not in st.session_state:
+    #     st.session_state["show_mask"] = False
     if "show_every_n_frame" not in st.session_state:
         st.session_state["show_every_n_frame"] = 1
     if "df_points" not in st.session_state:
@@ -70,8 +92,8 @@ def check_variables():
         st.session_state["width_pxl"] = 1
     if "reference" not in st.session_state:
         st.session_state["reference"] = 1.75
-    if "width_multiplier" not in st.session_state:
-        st.session_state["width_multiplier"] = 1
+    # if "width_multiplier" not in st.session_state:
+    #     st.session_state["width_multiplier"] = 1
     if "rolling_1s" not in st.session_state:
         st.session_state["rolling_1s"] = 0
     if "rolling_10s" not in st.session_state:
@@ -112,4 +134,3 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     df = df.melt("frame", var_name="seconds_count", value_name="values")
     # logger.info(f"MELTED DF:\n {df}")
     return df
-
