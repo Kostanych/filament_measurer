@@ -71,6 +71,7 @@ mask_radio = st.sidebar.radio(
     "Mask/Image",
     ["Image", "Mask"],
     key='Mask_or_image',
+    on_change=mask_switcher,
 )
 
 # Image display area
@@ -129,13 +130,13 @@ if reference:
     st.session_state["reference"] = reference
     change_calibration_multiplier()
 
-# """ Switcher mask/image """
-if mask_radio == "Image":
-    # app_state.update(show_mask=False)
-    st.session_state.show_mask = False
-else:
-    # app_state.update(show_mask=True)
-    st.session_state.show_mask = True
+# # """ Switcher mask/image """
+# if mask_radio == "Image":
+#     # app_state.update(show_mask=False)
+#     st.session_state.show_mask = False
+# else:
+#     # app_state.update(show_mask=True)
+#     st.session_state.show_mask = True
 
 # if frames_radio == '100%':
 #     st.session_state['show_every_n_frame'] = 1
@@ -168,35 +169,6 @@ logger.debug(f"input_source:           {input_source}")
 if video_file:
     load_video(video_file)
 
-# # If we selected any video file
-# if (video_file != None) & (input_source == 'File'):
-#     check_variables()
-#     logger.debug('Got the Video file')
-#     # Get filename, set title frame
-#     if ("filename" not in st.session_state) or (
-#             st.session_state.filename != video_file.name
-#     ):
-#         logger.debug('Start to load the video')
-#         load_video(video_file)
-#     else:
-#         logger.debug("filename IS in session state")
-#     vid_area.image(st.session_state.title_frame)
-
-# if play_button and video_file:
-#     check_variables()
-#     logger.info(f"play_button and video_file is TRUE")
-#     st.session_state["play"] = True
-#     # Process first frame
-#     ret, frame = st.session_state.cap.read()
-#     if ret:
-#         _, width = process_image(frame=frame, verbose=0)
-#         st.session_state.width_pxl = width
-#     change_calibration_multiplier()
-
-
-logger.debug(f"st.session_state.cap:               {st.session_state.cap}")
-# logger.debug(f"st.session_state.play:              {st.session_state.play}")
-
 # Play video
 if st.session_state.cap and st.session_state.play:
     init_variables()
@@ -208,13 +180,12 @@ if st.session_state.cap and st.session_state.play:
 
             # Draw info on the frame
             print(app_state.state)
-            source, width_pxl, width_mm, app_state.state[
-                'width_list'] = add_info_on_the_frame(
+            source, width_pxl, width_mm, = add_info_on_the_frame(
                 frame,
                 app_state.state['show_mask'],
                 app_state.state['width_multiplier'],
-                app_state.state['width_list']
             )
+            app_state.add_width(width_mm)
 
             # Process variables
             fps = cap.get(cv2.CAP_PROP_FPS)
@@ -223,10 +194,10 @@ if st.session_state.cap and st.session_state.play:
 
             # Plot
             st.session_state.rolling_1s = round(
-                mean_rolling(app_state.state['width_list'], fps), 4
+                mean_rolling(app_state.width_list, fps), 4
             )
             st.session_state.rolling_10s = round(
-                mean_rolling(app_state.state['width_list'], fps, 10), 4
+                mean_rolling(app_state.width_list, fps, 10), 4
             )
             st.session_state.mean_1.append(st.session_state.rolling_1s)
             st.session_state.mean_2.append(st.session_state.rolling_10s)

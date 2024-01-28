@@ -173,14 +173,15 @@ def change_calibration_multiplier():
     logger.info(f"Calibration multiplier: {st.session_state.width_multiplier}")
 
 
-def mask_switcher(mask_radio):
+def mask_switcher():
     """Switcher mask/image"""
     logger = get_logger("MASK SWITCHER", level=logging_level)
     logger.info(f"BUTTON Mask")
-    if mask_radio == "Image":
+    if st.session_state.show_mask:
         st.session_state.show_mask = False
     else:
         st.session_state.show_mask = True
+    logger.info(f'Switched! Show mask: {st.session_state.show_mask}!')
 
 
 def connect_camera():
@@ -216,8 +217,6 @@ def add_info_on_the_frame(frame, show_mask, width_multiplier):
         source = frame
 
     # Process frame
-    print('check vars')
-    # check_variables()
     source, angle = draw_angle_line(source.copy(), mask)
     angle_multiplier = calculate_pixel_multiplier(angle)
     width_pxl = width_pxl * angle_multiplier

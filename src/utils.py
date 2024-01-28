@@ -82,8 +82,8 @@ def init_variables():
         st.session_state["source"] = "File"
     if "cap" not in st.session_state:
         st.session_state["cap"] = None
-    # if "show_mask" not in st.session_state:
-    #     st.session_state["show_mask"] = False
+    if "show_mask" not in st.session_state:
+        st.session_state["show_mask"] = False
     if "show_every_n_frame" not in st.session_state:
         st.session_state["show_every_n_frame"] = 1
     if "df_points" not in st.session_state:
