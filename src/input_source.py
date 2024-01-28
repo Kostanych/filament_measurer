@@ -13,6 +13,7 @@ def image_input():
 
 
 def webcam_input(app_state):
+    print("WEEEEEEEEEEEEEEEEEEEEEEEEEBCAM")
     webrtc_streamer(
         key="webcam_input",
         video_frame_callback=lambda frame: webcam_callback(frame, app_state),

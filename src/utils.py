@@ -11,22 +11,20 @@ logging_level = logging.DEBUG
 
 
 class AppState:
-    """
-    Class for the saving state of the application. Using instead of session_state.
-    """
     def __init__(self):
+        # TODO: must be lite this dict
         self.state = {
             "show_mask": False,
             "width_multiplier": 1,
             'width_list': []
-            # Инициализируйте другие параметры здесь
         }
-        # self.width_list = []
+        self.show_mask = False
+        self.width_multiplier = 1
+        self.width_list = []
 
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            if key in self.state:
-                self.state[key] = value
+    def update(self, show_mask, width_multiplier):
+        self.show_mask = show_mask
+        self.width_multiplier = width_multiplier
 
     def add_width(self, width_mm):
         self.width_list.append(width_mm)

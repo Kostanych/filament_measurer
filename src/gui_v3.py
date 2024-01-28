@@ -56,11 +56,11 @@ if input_source == 'File':
                                     args=(app_state,)
                                     )
 
-stop_button = st.sidebar.button("Stop",
-                                key="stop_button",
-                                on_click=stop,
-                                args=(app_state,)
-                                )
+    stop_button = st.sidebar.button("Stop",
+                                    key="stop_button",
+                                    on_click=stop,
+                                    args=(app_state,)
+                                    )
 # frames_radio = st.sidebar.radio("Show N% of frames", ["100%", "10%"])
 # show_10_button = st.sidebar.button('Show 10% of frames', key='show_10_button',
 #                                    disabled=st.session_state.disabled)
@@ -73,7 +73,6 @@ mask_radio = st.sidebar.radio(
     key='Mask_or_image',
 )
 
-
 # Image display area
 col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
 with col1:
@@ -83,7 +82,6 @@ with col1:
         vid_area = st.image(image_input())
         st.session_state.vid_area = vid_area
     elif input_source == 'USB Device':
-        # vid_area = webcam_input(app_state)
         vid_area = webcam_input(app_state)
 with col2:
     st.header("Results")
@@ -123,7 +121,6 @@ with col12:
         unsafe_allow_html=True,
     )
 
-
 # Logic
 
 
@@ -134,10 +131,10 @@ if reference:
 
 # """ Switcher mask/image """
 if mask_radio == "Image":
-    app_state.update(show_mask=False)
+    # app_state.update(show_mask=False)
     st.session_state.show_mask = False
 else:
-    app_state.update(show_mask=True)
+    # app_state.update(show_mask=True)
     st.session_state.show_mask = True
 
 # if frames_radio == '100%':
@@ -211,7 +208,8 @@ if st.session_state.cap and st.session_state.play:
 
             # Draw info on the frame
             print(app_state.state)
-            source, width_pxl, width_mm, app_state.state['width_list'] = add_info_on_the_frame(
+            source, width_pxl, width_mm, app_state.state[
+                'width_list'] = add_info_on_the_frame(
                 frame,
                 app_state.state['show_mask'],
                 app_state.state['width_multiplier'],
@@ -251,7 +249,6 @@ if st.session_state.cap and st.session_state.play:
                 unsafe_allow_html=True,
             )
 
-
             vid_area.image(source)
             time.sleep(1 / fps)  # keep the fps the same as the original fps
 
@@ -260,7 +257,6 @@ if st.session_state.cap and st.session_state.play:
             except Exception as e:
                 print(repr(e))
                 chart_data = pd.DataFrame()
-
 
             # Plot results
             try:
