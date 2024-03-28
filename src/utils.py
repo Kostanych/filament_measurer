@@ -102,6 +102,8 @@ def init_variables():
         st.session_state["mean_1"] = []
     if "mean_2" not in st.session_state:
         st.session_state["mean_2"] = []
+    if "difference" not in st.session_state:
+        st.session_state["difference"] = 0
     if "fps" not in st.session_state:
         st.session_state["fps"] = 24
 

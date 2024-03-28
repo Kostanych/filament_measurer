@@ -1,15 +1,9 @@
-import logging
-
-import av
 import cv2
 import numpy as np
 from scipy.optimize import curve_fit
 
-
-import pandas as pd
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoHTMLAttributes
-
 
 from utils import get_logger
 import logging
