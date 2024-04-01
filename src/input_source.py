@@ -4,7 +4,6 @@ import streamlit as st
 import numpy as np
 from streamlit_webrtc import webrtc_streamer, VideoHTMLAttributes
 
-from fps import FPS
 from video_processor import webcam_callback
 
 

@@ -8,7 +8,6 @@ import pandas as pd
 
 from image_processor import add_info_on_the_frame, draw_fps
 from plot import update_rolling_plot
-from fps import FPS
 from utils import init_variables, get_logger, make_result_df, mean_rolling
 
 logger = get_logger()
