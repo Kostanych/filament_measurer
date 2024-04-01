@@ -8,6 +8,7 @@ import pandas as pd
 
 from image_processor import add_info_on_the_frame, draw_fps
 from plot import update_rolling_plot
+from fps import FPS
 from utils import init_variables, get_logger, make_result_df, mean_rolling
 
 logger = get_logger()
@@ -25,10 +26,9 @@ def play_video(app_state):
             # image = frame.to_ndarray(format="bgr24")
             source, width_pxl, width_mm = add_info_on_the_frame(
                 frame,
-                app_state.show_mask,
-                app_state.width_multiplier
+                app_state
             )
-            app_state.add_width(width_mm)
+            # app_state.add_width(width_mm)
 
             # Process variables
             fps = cap.get(cv2.CAP_PROP_FPS)
@@ -130,13 +130,36 @@ def launch_video_processing():
 
 
 def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
+    time_start = time.time()
     image = frame.to_ndarray(format="bgr24")
     image, width_pxl, width_mm = add_info_on_the_frame(
         image,
-        app_state.show_mask,
-        app_state.width_multiplier
+        app_state
     )
-    app_state.add_width(width_mm)
+    time_end = time.time()
+    fps = 1/(time_end - time_start)
+    st.session_state['fps'] = fps
+
+    fps_text = f"FPS: { fps:.1f}"
+    cv2.putText(
+        image,
+        fps_text,
+        (10, image.shape[0] - 10),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 255, 0),
+        2,
+    )
+
     return av.VideoFrame.from_ndarray(image, format="bgr24")
 
 
+# def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
+#     image = frame.to_ndarray(format="bgr24")
+#     image, width_pxl, width_mm = add_info_on_the_frame(
+#         image,
+#         app_state.show_mask,
+#         app_state.width_multiplier
+#     )
+#     app_state.add_width(width_mm)
+#     return av.VideoFrame.from_ndarray(image, format="bgr24")

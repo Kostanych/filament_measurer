@@ -11,8 +11,8 @@ from video_processor import play_video
 import sys
 import os
 
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 
 def update_status(new_message):
     st.session_state['status_message'] = new_message
@@ -83,7 +83,7 @@ with col1:
         st.session_state.vid_area = st.image(image_input())
         # st.session_state.vid_area = vid_area
     elif input_source == 'USB Device':
-        st.session_state. vid_area = webcam_input(app_state)
+        st.session_state.vid_area = webcam_input(app_state)
 with col2:
     st.header("Results")
     st.session_state.width_pxl_area = st.markdown(
@@ -128,7 +128,6 @@ with col12:
 if reference:
     st.session_state.reference = reference
     change_calibration_multiplier()
-
 
 try:
     logger.debug(f"video_file name:        {video_file.name}")

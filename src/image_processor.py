@@ -178,31 +178,14 @@ def mask_switcher():
     logger.info(f'Switched! Show mask: {st.session_state.show_mask}!')
 
 
-def connect_camera():
-    """Try to open camera using OpenCV"""
-    st.session_state.vid_area = webrtc_streamer(key="sample")
-    camera_index = None
-    for i in range(5):  # Try different indices, like 0 to 4
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            camera_index = i
-            break
-
-    if camera_index is not None:
-        st.session_state.cap = cv2.VideoCapture(camera_index)
-        st.write("Camera connected successfully!")
-    else:
-        st.write("Couldn't find a connected camera.")
-
-
-def add_info_on_the_frame(frame, show_mask, width_multiplier):
+def add_info_on_the_frame(frame, app_state):
     """Draw text and line info on the frame"""
     # When the video starts
     mask, width_pxl = process_image(frame=frame, verbose=0)
     width_pxl = width_pxl
     # show_mask is missed sometimes. need to fix it
     try:
-        if show_mask:
+        if app_state.show_mask:
             source = mask
         else:
             source = frame
@@ -214,9 +197,11 @@ def add_info_on_the_frame(frame, show_mask, width_multiplier):
     source, angle = draw_angle_line(source.copy(), mask)
     angle_multiplier = calculate_pixel_multiplier(angle)
     width_pxl = width_pxl * angle_multiplier
-    width_mm = width_pxl * angle_multiplier * width_multiplier
+    width_mm = width_pxl * angle_multiplier * app_state.width_multiplier
 
     # width_multiplier_calibrated = change_calibration_multiplier()
+
+    app_state.add_width(width_mm)
 
     return source, width_pxl, width_mm
 

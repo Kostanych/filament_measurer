@@ -104,13 +104,15 @@ def init_variables():
         st.session_state["mean_2"] = []
     if "difference" not in st.session_state:
         st.session_state["difference"] = 0
+    if "prev_time" not in st.session_state:
+        st.session_state['prev_time'] = 0
     if "fps" not in st.session_state:
         st.session_state["fps"] = 24
 
     if "width_pxl" not in st.session_state:
         st.session_state["width_pxl"] = 1
-    if st.session_state["width_pxl"] == 0:
-        st.session_state["width_pxl"] = 1
+    # if st.session_state["width_pxl"] == 0:
+    #     st.session_state["width_pxl"] = 1
 
 
 def make_result_df(num_seconds=2) -> pd.DataFrame():
@@ -135,3 +137,5 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     df = df.melt("frame", var_name="seconds_count", value_name="values")
     # logger.info(f"MELTED DF:\n {df}")
     return df
+
+
