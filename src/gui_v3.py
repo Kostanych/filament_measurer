@@ -49,8 +49,7 @@ input_source = st.sidebar.radio(
 st.session_state["source"] = input_source
 video_file = st.sidebar.file_uploader(
     "Select a video file",
-    type=["mp4", "avi", "mov"],
-    # on_change=load_video
+    type=["mp4", "avi", "mov"]
 )
 
 # Show PLAY/STOP button only if you want to play video file
@@ -80,8 +79,8 @@ with col1:
     st.header("Video")
     # Switcher videofile\webcamera
     if input_source == 'File':
-        st.session_state.vid_area = st.image(image_input())
-        # st.session_state.vid_area = vid_area
+        # print(st.session_state.title_frame)
+        st.session_state.vid_area = st.image(st.session_state.title_frame)
     elif input_source == 'USB Device':
         st.session_state.vid_area = webcam_input(app_state)
 with col2:
@@ -137,5 +136,7 @@ logger.debug(f"input_source:           {input_source}")
 
 if video_file:
     load_video(video_file)
+    # update_title_frame(st.session_state['video_path'])
+    print(f"fp {st.session_state['video_path']}")
 
 width_list = []

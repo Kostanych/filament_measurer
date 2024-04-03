@@ -75,7 +75,9 @@ def init_variables():
     if 'status_message' not in st.session_state:
         st.session_state['status_message'] = 'Ready to work!'
     if "title_frame" not in st.session_state:
-        st.session_state.title_frame = np.full((480, 640, 3), 255, dtype=np.uint8)
+        st.session_state['title_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
+    if "last_frame" not in st.session_state:
+        st.session_state['last_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
     # if "width_list" not in st.session_state:
     #     st.session_state["width_list"] = []
     if "source" not in st.session_state:
@@ -90,6 +92,8 @@ def init_variables():
         st.session_state["df_points"] = pd.DataFrame()
     if "width_pxl" not in st.session_state:
         st.session_state["width_pxl"] = 1
+    if "width_mm" not in st.session_state:
+        st.session_state["width_mm"] = 1
     if "reference" not in st.session_state:
         st.session_state["reference"] = 1.75
     # if "width_multiplier" not in st.session_state:
@@ -109,8 +113,6 @@ def init_variables():
     if "fps" not in st.session_state:
         st.session_state["fps"] = 24
 
-    if "width_pxl" not in st.session_state:
-        st.session_state["width_pxl"] = 1
     # if st.session_state["width_pxl"] == 0:
     #     st.session_state["width_pxl"] = 1
 

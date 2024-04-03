@@ -109,7 +109,6 @@ def measure_angle(mask):
 
 def draw_angle_line(frame, mask):
     """Draw angle line"""
-    print('draw angle')
     angle = measure_angle(mask)
     if angle is not None:
         angle_text = f"Angle: {angle:.2f} degrees"
@@ -127,9 +126,9 @@ def draw_angle_line(frame, mask):
     return frame, angle
 
 
-def draw_fps(frame, cap):
+def draw_fps(frame, fps):
     """Draw FPS"""
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    # fps = cap.get(cv2.CAP_PROP_FPS)
     fps_text = f"FPS: {fps:.1f}"
     cv2.putText(
         frame,
@@ -140,7 +139,21 @@ def draw_fps(frame, cap):
         (0, 255, 0),
         2,
     )
+    return frame
 
+
+def draw_n_frames(frame, n_frames):
+    """Draw FPS"""
+    fps_text = f"n_frames: {n_frames:.1f}"
+    cv2.putText(
+        frame,
+        fps_text,
+        (10, frame.shape[0] - 50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 255, 0),
+        2,
+    )
     return frame
 
 
@@ -206,16 +219,19 @@ def add_info_on_the_frame(frame, app_state):
     return source, width_pxl, width_mm
 
 
-def update_title_frame(file_path):
-    # Get first frame
+def update_title_frame(frame):
+    st.session_state.title_frame = frame
+    st.session_state.vid_area.image(st.session_state.title_frame)
     # logger = get_logger('TITLE FRAME', level=logging_level)
 
-    title_cap = cv2.VideoCapture(file_path)
-    ret, frame = title_cap.read()
-    if ret:
-        _, width = process_image(frame=frame, verbose=0)
-        st.session_state.width_pxl = width
-        st.session_state.title_frame = frame
+    # title_cap = cv2.VideoCapture(file_path)
+    # ret, frame = title_cap.read()
+    # if ret:
+    #     _, width = process_image(frame=frame, verbose=0)
+    #     st.session_state.width_pxl = width
+    #     # st.session_state.title_frame = frame
+    #     st.session_state.vid_area.image(st.session_state.title_frame)
+    #     print('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
 
 

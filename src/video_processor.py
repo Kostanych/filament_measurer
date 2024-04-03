@@ -6,7 +6,8 @@ import cv2
 import streamlit as st
 import pandas as pd
 
-from image_processor import add_info_on_the_frame, draw_fps
+from image_processor import add_info_on_the_frame, draw_fps, draw_n_frames, \
+    update_title_frame
 from plot import update_rolling_plot
 from utils import init_variables, get_logger, make_result_df, mean_rolling
 
@@ -19,20 +20,29 @@ def play_video(app_state):
     open_video_source()
     cap = st.session_state.cap
     print(f"PLAY   {st.session_state['play']}")
+    n_frames = 0
+    time_strt = time.time()
     while cap.isOpened():
         ret, frame = cap.read()
+
         if ret:
             # image = frame.to_ndarray(format="bgr24")
-            source, width_pxl, width_mm = add_info_on_the_frame(
+            time_start = time.time()
+            source, st.session_state.width_pxl, st.session_state.width_mm = add_info_on_the_frame(
                 frame,
                 app_state
             )
             # app_state.add_width(width_mm)
+            n_frames += 1
 
             # Process variables
-            fps = cap.get(cv2.CAP_PROP_FPS)
+            time_end = time.time()
+            # fps = cap.get(cv2.CAP_PROP_FPS)
+            fps = 1/(time_end - time_start)
             st.session_state.fps = fps
-            source = draw_fps(source, cap)
+
+            source = draw_fps(source, fps)
+            source = draw_n_frames(source, n_frames)
 
             # Plot
             st.session_state.rolling_1s = round(
@@ -45,11 +55,11 @@ def play_video(app_state):
             st.session_state.mean_2.append(st.session_state.rolling_10s)
 
             st.session_state.width_pxl_area.markdown(
-                f'<span style="font-size: 20px;">Width, pixels: {round(width_pxl, 0)}</span>',
+                f'<span style="font-size: 20px;">Width, pixels: {round(st.session_state.width_pxl, 0)}</span>',
                 unsafe_allow_html=True,
             )
             st.session_state.width_mm_area.markdown(
-                f'<span style="font-size: 20px;">Width, mm:     {round(width_mm, 3)}</span>',
+                f'<span style="font-size: 20px;">Width, mm:     {round(st.session_state.width_mm, 3)}</span>',
                 unsafe_allow_html=True,
             )
 
@@ -63,8 +73,9 @@ def play_video(app_state):
             )
             # Place processed image on the video area
             st.session_state.vid_area.image(source)
+            st.session_state['last_frame'] = source
 
-            time.sleep(1 / fps)  # keep the fps the same as the original fps
+            # time.sleep(1 / fps)  # keep the fps the same as the original fps
 
             try:
                 chart_data = make_result_df()
@@ -83,13 +94,20 @@ def play_video(app_state):
                 )
             except Exception as e:
                 print(repr(e))
-
         else:
             # End of video
             logger.info("END OF PLAYBACK")
             st.session_state.play = False
+            st.session_state['last_frame'] = source
             cap.release()
             break  # Close cycle
+    update_title_frame(st.session_state['last_frame'])
+    real_fps = n_frames / (time.time() - time_strt)
+    print(n_frames)
+    print(time.time())
+    print(time_strt)
+    print((time.time() - time_strt))
+    logger.info(f"Real fps: {real_fps}")
 
 
 def open_video_source():
@@ -101,8 +119,8 @@ def open_video_source():
     logger.info('Try to open the video...')
     # if st.session_state.cap:
     #     st.session_state.cap.release()
-    print(st.session_state["source"])
-    print(st.session_state["video_path"])
+    # print(st.session_state["source"])
+    # print(st.session_state["video_path"])
     if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
 
         logger.info("Video from file")
@@ -125,7 +143,7 @@ def launch_video_processing():
         # load_video(video_file)
         # else:
         #     logger.debug("filename IS in session state")
-        st.session_state.vid_area.image(st.session_state.title_frame)
+        # st.session_state.vid_area.image(st.session_state.title_frame)
 
 
 def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
