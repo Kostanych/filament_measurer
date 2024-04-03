@@ -9,10 +9,13 @@ import pandas as pd
 from image_processor import add_info_on_the_frame, draw_fps, draw_n_frames, \
     update_title_frame
 from plot import update_rolling_plot
-from utils import init_variables, get_logger, make_result_df, mean_rolling
+from utils import init_variables, get_logger, make_result_df, mean_rolling, \
+    FpsCalculator
 
 logger = get_logger()
 logging_level = logging.DEBUG
+
+fps_calculator = FpsCalculator()
 
 
 def play_video(app_state):
@@ -26,8 +29,10 @@ def play_video(app_state):
         ret, frame = cap.read()
 
         if ret:
-            # image = frame.to_ndarray(format="bgr24")
-            time_start = time.time()
+            fps_calculator.tick()  # Update time
+            fps = fps_calculator.get_fps()  # Get mean FPS
+
+            # time_start = time.time()
             source, st.session_state.width_pxl, st.session_state.width_mm = add_info_on_the_frame(
                 frame,
                 app_state
@@ -36,9 +41,6 @@ def play_video(app_state):
             n_frames += 1
 
             # Process variables
-            time_end = time.time()
-            # fps = cap.get(cv2.CAP_PROP_FPS)
-            fps = 1/(time_end - time_start)
             st.session_state.fps = fps
 
             source = draw_fps(source, fps)
@@ -140,10 +142,6 @@ def launch_video_processing():
         logger.debug('Got the Video file')
         # Get filename, set title frame
         logger.debug('Start to load the video')
-        # load_video(video_file)
-        # else:
-        #     logger.debug("filename IS in session state")
-        # st.session_state.vid_area.image(st.session_state.title_frame)
 
 
 def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
@@ -170,13 +168,3 @@ def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
 
     return av.VideoFrame.from_ndarray(image, format="bgr24")
 
-
-# def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
-#     image = frame.to_ndarray(format="bgr24")
-#     image, width_pxl, width_mm = add_info_on_the_frame(
-#         image,
-#         app_state.show_mask,
-#         app_state.width_multiplier
-#     )
-#     app_state.add_width(width_mm)
-#     return av.VideoFrame.from_ndarray(image, format="bgr24")

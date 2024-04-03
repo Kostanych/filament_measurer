@@ -136,7 +136,5 @@ logger.debug(f"input_source:           {input_source}")
 
 if video_file:
     load_video(video_file)
-    # update_title_frame(st.session_state['video_path'])
-    print(f"fp {st.session_state['video_path']}")
 
-width_list = []
+

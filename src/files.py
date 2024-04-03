@@ -1,7 +1,10 @@
 import os
 import logging
+
+import cv2
 import streamlit as st
 
+from image_processor import update_title_frame
 from utils import get_logger
 
 logging_level = logging.INFO
@@ -21,7 +24,8 @@ def get_video_filename():
 
 def load_video(video_file):
     """
-    Load video
+    Load video from the streamlit object.
+    Get the filename and path, fill session_state variables.
     Args:
         video_file: file object from Streamlit.
     """
@@ -29,6 +33,11 @@ def load_video(video_file):
     st.session_state['filename'] = video_file.name
     st.session_state['video_path'] = get_video_filename()
     logger.info(f"video_path:    {st.session_state['video_path']}")
-    # open_video_source()
-    # update_title_frame(st.session_state.video_path)
+
+    # Update title frame by first frame of the video
+    cap = cv2.VideoCapture(st.session_state['video_path'])
+    _, frame = cap.read()
+    update_title_frame(frame)
+    del cap
+
 

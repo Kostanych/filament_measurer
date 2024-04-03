@@ -1,5 +1,6 @@
 """Utilities file"""
 import sys
+import time
 
 import pandas as pd
 import numpy as np
@@ -141,3 +142,24 @@ def make_result_df(num_seconds=2) -> pd.DataFrame():
     return df
 
 
+class FpsCalculator:
+    def __init__(self):
+        self.frame_timestamps = []
+        self.interval = 1
+
+    def tick(self):
+        """Update every frame"""
+        self.frame_timestamps.append(time.time())
+        self._clean_old_timestamps()
+
+    def _clean_old_timestamps(self):
+        """Delete timestamps older than 'interval' seconds"""
+        current_time = time.time()
+        self.frame_timestamps = [ts for ts in self.frame_timestamps if current_time - ts <= self.interval]
+
+    def get_fps(self):
+        """Return mean FPS for 'interval' seconds"""
+        if len(self.frame_timestamps) < 2:
+            return 24
+        time_passed = self.frame_timestamps[-1] - self.frame_timestamps[0]
+        return (len(self.frame_timestamps) - 1) / time_passed

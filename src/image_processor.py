@@ -220,18 +220,10 @@ def add_info_on_the_frame(frame, app_state):
 
 
 def update_title_frame(frame):
+    """
+    Update the title frame.
+    """
     st.session_state.title_frame = frame
     st.session_state.vid_area.image(st.session_state.title_frame)
-    # logger = get_logger('TITLE FRAME', level=logging_level)
-
-    # title_cap = cv2.VideoCapture(file_path)
-    # ret, frame = title_cap.read()
-    # if ret:
-    #     _, width = process_image(frame=frame, verbose=0)
-    #     st.session_state.width_pxl = width
-    #     # st.session_state.title_frame = frame
-    #     st.session_state.vid_area.image(st.session_state.title_frame)
-    #     print('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
-
 
 
