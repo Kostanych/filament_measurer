@@ -77,8 +77,12 @@ def init_variables():
         st.session_state['status_message'] = 'Ready to work!'
     if "title_frame" not in st.session_state:
         st.session_state['title_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
+    if "title_frame_is_blank" not in st.session_state:
+        st.session_state['title_frame_is_blank'] = True
     if "last_frame" not in st.session_state:
         st.session_state['last_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
+    # if "filename" not in st.session_state:
+    #     st.session_state["filename"] = ''
     # if "width_list" not in st.session_state:
     #     st.session_state["width_list"] = []
     if "source" not in st.session_state:

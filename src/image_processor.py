@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoHTMLAttributes
+
 
 from utils import get_logger
 import logging

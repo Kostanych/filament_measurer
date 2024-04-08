@@ -39,7 +39,7 @@ st.sidebar.header("Control Panel")
 reference = st.sidebar.number_input(
     "Reference width (mm):",
     value=float(1.75),
-    # on_change=change_calibration_multiplier
+    on_change=change_calibration_multiplier
 )
 st.session_state["reference"] = reference
 input_source = st.sidebar.radio(
@@ -49,8 +49,13 @@ input_source = st.sidebar.radio(
 st.session_state["source"] = input_source
 video_file = st.sidebar.file_uploader(
     "Select a video file",
-    type=["mp4", "avi", "mov"]
+    type=["mp4", "avi", "mov"],
+    # on_change=on_video_file_change,
+    # key="video_file"
 )
+# Save the filename
+# if video_file is not None:
+#     st.session_state.video_file = video_file
 
 # Show PLAY/STOP button only if you want to play video file
 if input_source == 'File':
@@ -124,17 +129,24 @@ with col12:
 
 
 # Change reference multiplier
-if reference:
-    st.session_state.reference = reference
-    change_calibration_multiplier()
+# if reference:
+#     st.session_state.reference = reference
+#     change_calibration_multiplier()
 
-try:
-    logger.debug(f"video_file name:        {video_file.name}")
-except:
-    logger.debug(f"video_file name:        {video_file}")
-logger.debug(f"input_source:           {input_source}")
+# try:
+#     logger.debug(f"video_file name:        {video_file.name}")
+# except:
+#     logger.debug(f"video_file name:        {video_file}")
+# logger.debug(f"input_source:           {input_source}")
 
-if video_file:
-    load_video(video_file)
+# Update title frame first time
+if st.session_state["title_frame_is_blank"]:
+    st.session_state["filename"] = video_file.name
+    st.session_state['video_path'] = get_video_filename()
+    # Update title frame by first frame of the video
+    cap = cv2.VideoCapture(st.session_state['video_path'])
+    _, frame = cap.read()
+    update_title_frame(frame)
+    st.session_state["title_frame_is_blank"] = False
 
 

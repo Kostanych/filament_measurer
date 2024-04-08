@@ -9,7 +9,8 @@ import pandas as pd
 from image_processor import add_info_on_the_frame, draw_fps, draw_n_frames, \
     update_title_frame
 from plot import update_rolling_plot
-from utils import init_variables, get_logger, make_result_df, mean_rolling, \
+from files import load_video
+from utils import get_logger, make_result_df, mean_rolling, \
     FpsCalculator
 
 logger = get_logger()
@@ -19,7 +20,8 @@ fps_calculator = FpsCalculator()
 
 
 def play_video(app_state):
-    init_variables()
+    # init_variables()
+    # load_video()
     open_video_source()
     cap = st.session_state.cap
     print(f"PLAY   {st.session_state['play']}")
