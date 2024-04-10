@@ -54,22 +54,33 @@ video_file = st.sidebar.file_uploader(
     # key="video_file"
 )
 # Save the filename
-# if video_file is not None:
-#     st.session_state.video_file = video_file
 
-# Show PLAY/STOP button only if you want to play video file
-if input_source == 'File':
-    play_button = st.sidebar.button("Play",
-                                    key="play_button",
-                                    on_click=play_video,
-                                    args=(app_state,)
-                                    )
+# # Show PLAY/STOP button only if you want to play video file
+# if input_source == 'File':
+#     play_button = st.sidebar.button("Play",
+#                                     key="play_button",
+#                                     on_click=play_video,
+#                                     args=(app_state,)
+#                                     )
+#
+#     stop_button = st.sidebar.button("Stop",
+#                                     key="stop_button",
+#                                     on_click=stop,
+#                                     args=(app_state,)
+#                                     )
 
-    stop_button = st.sidebar.button("Stop",
-                                    key="stop_button",
-                                    on_click=stop,
-                                    args=(app_state,)
-                                    )
+# Show PLAY/STOP button
+play_button = st.sidebar.button("Play",
+                                key="play_button",
+                                on_click=play_video,
+                                args=(app_state,)
+                                )
+
+stop_button = st.sidebar.button("Stop",
+                                key="stop_button",
+                                on_click=stop,
+                                args=(app_state,)
+                                )
 
 mask_radio = st.sidebar.radio(
     "Mask/Image",
@@ -87,7 +98,11 @@ with col1:
         # print(st.session_state.title_frame)
         st.session_state.vid_area = st.image(st.session_state.title_frame)
     elif input_source == 'USB Device':
-        st.session_state.vid_area = webcam_input(app_state)
+        # This part is for the streamlit_webrtc library
+        # st.session_state.vid_area = webcam_input(app_state)
+        # placeholder
+        st.session_state.vid_area = st.image(st.session_state.title_frame)
+
 with col2:
     st.header("Results")
     st.session_state.width_pxl_area = st.markdown(
@@ -141,12 +156,14 @@ with col12:
 
 # Update title frame first time
 if st.session_state["title_frame_is_blank"]:
-    st.session_state["filename"] = video_file.name
-    st.session_state['video_path'] = get_video_filename()
-    # Update title frame by first frame of the video
-    cap = cv2.VideoCapture(st.session_state['video_path'])
-    _, frame = cap.read()
-    update_title_frame(frame)
-    st.session_state["title_frame_is_blank"] = False
+    # If this is not a video file:
+    if video_file:
+        st.session_state["filename"] = video_file.name
+        st.session_state['video_path'] = get_video_filename()
+        # Update title frame by first frame of the video
+        cap = cv2.VideoCapture(st.session_state['video_path'])
+        _, frame = cap.read()
+        update_title_frame(frame)
+        st.session_state["title_frame_is_blank"] = False
 
 
