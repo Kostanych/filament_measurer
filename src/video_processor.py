@@ -10,7 +10,7 @@ from image_processor import add_info_on_the_frame, draw_fps, draw_n_frames, \
     update_title_frame
 from plot import update_rolling_plot
 from utils import get_logger, make_result_df, mean_rolling, \
-    FpsCalculator
+    FpsCalculator, init_variables
 
 logger = get_logger()
 logging_level = logging.DEBUG
@@ -18,76 +18,90 @@ logging_level = logging.DEBUG
 fps_calculator = FpsCalculator()
 
 
-def play_video(app_state):
+def set_play_flag():
+    st.session_state['play'] = True
+
+
+def play_or_continue_video():
     # init_variables()
     # load_video()
-    open_video_source()
-    cap = st.session_state.cap
-    print(f"PLAY   {st.session_state['play']}")
-    n_frames = 0
-    time_strt = time.time()
-    if cap:
-        while cap.isOpened():
-            ret, frame = cap.read()
+    print('play_or_continue_video')
 
-            if ret:
-                fps_calculator.tick()  # Update time
-                fps = fps_calculator.get_fps()  # Get mean FPS
+    if not st.session_state.cap:
+        # Create st.session state.cap based on st variables
+        logger.info('st.session_state.cap does not exist')
+        open_video_source()
 
-                # time_start = time.time()
-                source, st.session_state.width_pxl, st.session_state.width_mm = add_info_on_the_frame(
-                    frame,
-                    app_state
-                )
-                # app_state.add_width(width_mm)
-                n_frames += 1
+    if st.session_state['play']:
+        # cap = st.session_state.cap
+        print(f"PLAY   {st.session_state['play']}")
+        n_frames = 0
+        time_strt = time.time()
+        if st.session_state.cap:
+            print('cap is true')
+            init_variables()
+            while st.session_state.cap.isOpened():
 
-                # Process variables
-                st.session_state.fps = fps
+                ret, frame = st.session_state.cap.read()
+                if ret:
+                    fps_calculator.tick()  # Update time
+                    fps = fps_calculator.get_fps()  # Get mean FPS
 
-                # Plot the plot
-                plot_means(app_state)
-
-                source = draw_fps(source, fps)
-                source = draw_n_frames(source, n_frames)
-
-                # Place processed image on the video area
-                st.session_state.vid_area.image(source)
-                st.session_state['last_frame'] = source
-
-                # time.sleep(1 / fps)  # keep the fps the same as the original fps
-
-                try:
-                    chart_data = make_result_df()
-                except Exception as e:
-                    print(repr(e))
-                    chart_data = pd.DataFrame()
-
-                # Plot results
-                try:
-                    st.session_state.df_points = chart_data
-                    # Update variables
-                    update_rolling_plot(st.session_state["plot_area"])
-                    st.session_state.difference_markdown.markdown(
-                        f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
-                        unsafe_allow_html=True,
+                    # time_start = time.time()
+                    source, st.session_state.width_pxl, st.session_state.width_mm = add_info_on_the_frame(
+                        frame,
+                        # app_state
                     )
-                except Exception as e:
-                    print(repr(e))
-            else:
-                # End of video
-                logger.info("END OF PLAYBACK")
-                st.session_state.play = False
-                st.session_state['last_frame'] = source
-                cap.release()
-                break  # Close cycle
-    update_title_frame(st.session_state['last_frame'])
-    real_fps = n_frames / (time.time() - time_strt)
-    print(n_frames)
-    print(time.time())
-    print(time_strt)
-    print((time.time() - time_strt))
-    logger.info(f"Real fps: {real_fps}")
+                    # app_state.add_width(width_mm)
+                    n_frames += 1
+
+                    # Process variables
+                    st.session_state.fps = fps
+
+                    # Plot the plot
+                    plot_means()
+
+                    source = draw_fps(source, fps)
+                    source = draw_n_frames(source, n_frames)
+
+                    # Place processed image on the video area
+                    st.session_state.vid_area.image(source)
+                    st.session_state['last_frame'] = source
+
+                    # time.sleep(1 / fps)  # keep the fps the same as the original fps
+
+                    try:
+                        chart_data = make_result_df()
+                    except Exception as e:
+                        print(repr(e))
+                        chart_data = pd.DataFrame()
+
+                    # Plot results
+                    try:
+                        st.session_state.df_points = chart_data
+                        # Update variables
+                        update_rolling_plot(st.session_state["plot_area"])
+                        st.session_state.difference_markdown.markdown(
+                            f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
+                            unsafe_allow_html=True,
+                        )
+                    except Exception as e:
+                        print(repr(e))
+                else:
+                    # End of video
+                    logger.info("END OF PLAYBACK")
+                    st.session_state.play = False
+                    st.session_state['last_frame'] = source
+                    st.session_state.cap.release()
+                    st.session_state.cap = None
+                    break  # Close cycle
+        update_title_frame(st.session_state['last_frame'])
+        real_fps = n_frames / (time.time() - time_strt)
+        print(n_frames)
+        print(time.time())
+        print(time_strt)
+        print((time.time() - time_strt))
+        logger.info(f"Real fps: {real_fps}")
 
 
 def open_video_source():
@@ -102,16 +116,13 @@ def open_video_source():
         logger.info("Video from file")
         video_path = st.session_state["video_path"]
         st.session_state.cap = cv2.VideoCapture(video_path)
-        st.session_state["play"] = True
-        launch_video_processing()
-
-
+        # st.session_state["play"] = True
+        # launch_video_processing()
     elif st.session_state["source"] == "USB Device":
         logger.info("Video from USB device")
         st.session_state.cap = cv2.VideoCapture(0)
-        st.session_state["play"] = True
-        launch_video_processing()
-
+        # st.session_state["play"] = True
+        # launch_video_processing()
     else:
         logger.info("Select the video first!")
         st.session_state["play"] = False
@@ -160,13 +171,13 @@ def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
     return av.VideoFrame.from_ndarray(image, format="bgr24")
 
 
-def plot_means(app_state):
+def plot_means():
     # Plot
     st.session_state.rolling_1s = round(
-        mean_rolling(app_state.width_list, st.session_state.fps), 4
+        mean_rolling(st.session_state.width_list, st.session_state.fps), 4
     )
     st.session_state.rolling_10s = round(
-        mean_rolling(app_state.width_list, st.session_state.fps, 10), 4
+        mean_rolling(st.session_state.width_list, st.session_state.fps, 10), 4
     )
     st.session_state.mean_1.append(st.session_state.rolling_1s)
     st.session_state.mean_2.append(st.session_state.rolling_10s)

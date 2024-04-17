@@ -1,13 +1,10 @@
-import logging
-import time
 
 from files import *
 from gui_logic import *
 from image_processor import *
-from input_source import *
 from plot import *
 from utils import *
-from video_processor import play_video
+from video_processor import set_play_flag, play_or_continue_video
 import sys
 import os
 
@@ -27,7 +24,7 @@ st.set_page_config(layout="wide")
 
 # Session variables
 init_variables()
-app_state = AppState()
+# app_state = AppState()
 
 # Streamlit elements
 status_bar = st.empty()
@@ -53,33 +50,18 @@ video_file = st.sidebar.file_uploader(
     # on_change=on_video_file_change,
     # key="video_file"
 )
-# Save the filename
-
-# # Show PLAY/STOP button only if you want to play video file
-# if input_source == 'File':
-#     play_button = st.sidebar.button("Play",
-#                                     key="play_button",
-#                                     on_click=play_video,
-#                                     args=(app_state,)
-#                                     )
-#
-#     stop_button = st.sidebar.button("Stop",
-#                                     key="stop_button",
-#                                     on_click=stop,
-#                                     args=(app_state,)
-#                                     )
 
 # Show PLAY/STOP button
 play_button = st.sidebar.button("Play",
                                 key="play_button",
-                                on_click=play_video,
-                                args=(app_state,)
+                                on_click=set_play_flag,
+                                # args=(app_state,)
                                 )
 
 stop_button = st.sidebar.button("Stop",
                                 key="stop_button",
                                 on_click=stop,
-                                args=(app_state,)
+                                # args=(app_state,)
                                 )
 
 mask_radio = st.sidebar.radio(
@@ -125,7 +107,7 @@ with col3:
 # Plot display area
 col11, col12 = st.columns([0.8, 0.2])
 with col11:
-    if not app_state.state['width_list']:
+    if not st.session_state['width_list']:
         st.session_state.plot_area = st.empty()
     else:
         update_rolling_plot(st.session_state.plot_area)
@@ -140,19 +122,6 @@ with col12:
         unsafe_allow_html=True,
     )
 
-# Logic
-
-
-# Change reference multiplier
-# if reference:
-#     st.session_state.reference = reference
-#     change_calibration_multiplier()
-
-# try:
-#     logger.debug(f"video_file name:        {video_file.name}")
-# except:
-#     logger.debug(f"video_file name:        {video_file}")
-# logger.debug(f"input_source:           {input_source}")
 
 # Update title frame first time
 if st.session_state["title_frame_is_blank"]:
@@ -167,3 +136,4 @@ if st.session_state["title_frame_is_blank"]:
         st.session_state["title_frame_is_blank"] = False
 
 
+play_or_continue_video()

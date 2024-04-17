@@ -167,10 +167,14 @@ def calculate_pixel_multiplier(angle):
 
 def change_calibration_multiplier():
     """The calibration multiplier is used to estimate the current width"""
+
     logger = get_logger("CALIBRATION MULTIPLIER", level=logging_level)
     print(f"width      {st.session_state.width_pxl}")
     print(f"reference: {st.session_state.reference}")
     try:
+        # Avoid to divide by zero. 160 is a test mean value.
+        if st.session_state.width_pxl == 0:
+            st.session_state.width_pxl = 160
         st.session_state.width_multiplier = (
                 st.session_state.reference / st.session_state.width_pxl
         )
@@ -191,14 +195,14 @@ def mask_switcher():
     logger.info(f'Switched! Show mask: {st.session_state.show_mask}!')
 
 
-def add_info_on_the_frame(frame, app_state):
+def add_info_on_the_frame(frame):
     """Draw text and line info on the frame"""
     # When the video starts
     mask, width_pxl = process_image(frame=frame, verbose=0)
     width_pxl = width_pxl
     # show_mask is missed sometimes. need to fix it
     try:
-        if app_state.show_mask:
+        if st.session_state.show_mask:
             source = mask
         else:
             source = frame
@@ -207,14 +211,17 @@ def add_info_on_the_frame(frame, app_state):
         source = frame
 
     # Process frame
-    source, angle = draw_angle_line(source.copy(), mask)
-    angle_multiplier = calculate_pixel_multiplier(angle)
-    width_pxl = width_pxl * angle_multiplier
-    width_mm = width_pxl * angle_multiplier * app_state.width_multiplier
+    try:
+        source, angle = draw_angle_line(source, mask)
+        angle_multiplier = calculate_pixel_multiplier(angle)
+        width_pxl = width_pxl * angle_multiplier
+        width_mm = width_pxl * angle_multiplier * st.session_state.width_multiplier
 
-    # width_multiplier_calibrated = change_calibration_multiplier()
+        # width_multiplier_calibrated = change_calibration_multiplier()
 
-    app_state.add_width(width_mm)
+        st.session_state.width_list.append(width_mm)
+    except Exception as e:
+        print(repr(e))
 
     return source, width_pxl, width_mm
 

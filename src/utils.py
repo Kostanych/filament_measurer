@@ -83,8 +83,8 @@ def init_variables():
         st.session_state['last_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
     # if "filename" not in st.session_state:
     #     st.session_state["filename"] = ''
-    # if "width_list" not in st.session_state:
-    #     st.session_state["width_list"] = []
+    if "width_list" not in st.session_state:
+        st.session_state["width_list"] = []
     if "source" not in st.session_state:
         st.session_state["source"] = "File"
     if "cap" not in st.session_state:
@@ -101,8 +101,8 @@ def init_variables():
         st.session_state["width_mm"] = 1
     if "reference" not in st.session_state:
         st.session_state["reference"] = 1.75
-    # if "width_multiplier" not in st.session_state:
-    #     st.session_state["width_multiplier"] = 1
+    if "width_multiplier" not in st.session_state:
+        st.session_state["width_multiplier"] = 1
     if "rolling_1s" not in st.session_state:
         st.session_state["rolling_1s"] = 0
     if "rolling_10s" not in st.session_state:
