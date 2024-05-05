@@ -181,7 +181,9 @@ def change_calibration_multiplier():
     except Exception as e:
         logger.info(repr(e))
         st.session_state.width_multiplier = 0.01
-    logger.info(f"Calibration multiplier: {st.session_state.width_multiplier}")
+    logger.info(f"Calibration multiplier:       {st.session_state.width_multiplier}")
+    logger.info(f"st.session_state.reference :  {st.session_state.reference }")
+    logger.info(f"st.session_state.width_pxl:   {st.session_state.width_pxl}")
 
 
 def mask_switcher():
@@ -223,6 +225,10 @@ def add_info_on_the_frame(frame):
     except Exception as e:
         print(repr(e))
 
+    print(f"angle_multiplier   {angle_multiplier}")
+    print(f"width_multiplier   {st.session_state.width_multiplier}")
+    print(f"ppppppppppppppppppppppp   {width_pxl}")
+    print(f"mmmmmmmmmmmmmmmmmmmmmmm   {width_mm}")
     return source, width_pxl, width_mm
 
 

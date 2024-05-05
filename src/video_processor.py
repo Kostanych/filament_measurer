@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 
 from image_processor import add_info_on_the_frame, draw_fps, draw_n_frames, \
-    update_title_frame
+    update_title_frame, change_calibration_multiplier, process_image
 from plot import update_rolling_plot
 from utils import get_logger, make_result_df, mean_rolling, \
     FpsCalculator, init_variables
@@ -26,6 +26,8 @@ def play_or_continue_video():
     # init_variables()
     # load_video()
     print('play_or_continue_video')
+    _, st.session_state.width_pxl = process_image(frame=st.session_state.title_frame)
+    print(f"___________ {st.session_state.width_pxl}")
 
     if not st.session_state.cap:
         # Create st.session state.cap based on st variables
@@ -33,6 +35,8 @@ def play_or_continue_video():
         open_video_source()
 
     if st.session_state['play']:
+        # Change multiplier from the start
+        change_calibration_multiplier()
         # cap = st.session_state.cap
         print(f"PLAY   {st.session_state['play']}")
         n_frames = 0

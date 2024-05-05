@@ -1,4 +1,3 @@
-
 from files import *
 from gui_logic import *
 from image_processor import *
@@ -33,12 +32,28 @@ st.title("Filament Measurer")
 
 # Sidebar
 st.sidebar.header("Control Panel")
-reference = st.sidebar.number_input(
-    "Reference width (mm):",
-    value=float(1.75),
-    on_change=change_calibration_multiplier
-)
-st.session_state["reference"] = reference
+
+
+# Put reference changing into the Fragment. Fragment updates independently
+@st.experimental_fragment
+def set_or_change_reference():
+    st.session_state["reference"] = st.number_input(
+        "Reference width (mm):",
+        value=float(1.75),
+        # on_change=change_calibration_multiplier
+    )
+    # Change the reference
+
+
+with st.sidebar:
+    set_or_change_reference()
+
+change_reference = st.sidebar.button("Change reference standard",
+                                key="change_reference",
+                                on_click=change_calibration_multiplier,
+                                # args=(app_state,)
+                                )
+
 input_source = st.sidebar.radio(
     'Input Source',
     options=['File', 'USB Device']
@@ -122,10 +137,10 @@ with col12:
         unsafe_allow_html=True,
     )
 
-
 # Update title frame first time
 if st.session_state["title_frame_is_blank"]:
     # If this is not a video file:
+    logger.info("Update title frame first time")
     if video_file:
         st.session_state["filename"] = video_file.name
         st.session_state['video_path'] = get_video_filename()
@@ -134,6 +149,5 @@ if st.session_state["title_frame_is_blank"]:
         _, frame = cap.read()
         update_title_frame(frame)
         st.session_state["title_frame_is_blank"] = False
-
 
 play_or_continue_video()

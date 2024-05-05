@@ -102,7 +102,7 @@ def init_variables():
     if "reference" not in st.session_state:
         st.session_state["reference"] = 1.75
     if "width_multiplier" not in st.session_state:
-        st.session_state["width_multiplier"] = 1
+        st.session_state["width_multiplier"] = 0.005
     if "rolling_1s" not in st.session_state:
         st.session_state["rolling_1s"] = 0
     if "rolling_10s" not in st.session_state:
