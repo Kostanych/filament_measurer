@@ -8,7 +8,7 @@ import streamlit as st
 from utils import get_logger
 import logging
 
-logging_level = logging.INFO
+# logging_level = logging.INFO
 logging_level = logging.DEBUG
 
 
@@ -28,12 +28,14 @@ def load_image_into_numpy_array(path):
     return np.array(cv2.imread(path))
 
 
-def process_image(frame, verbose=0):
+def process_image(frame, add_info=True, verbose=0):
     """
     Take one frame and process it. Return masked frame and mean width of the filament
     Args:
         frame:
             image frame
+        add_info:
+            add info on the frame
         verbose:
             If True, print more information
 
@@ -64,25 +66,26 @@ def process_image(frame, verbose=0):
         "Filament thickness on the current frame: {} pixels".format(filament_thickness)
     )
 
-    # Display the processed frame with information about the thickness
-    cv2.putText(
-        frame,
-        "Filament Thickness: {:.2f} pixels".format(filament_thickness),
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 0, 255),
-        2,
-    )
-    cv2.putText(
-        binary_frame,
-        "Filament Thickness: {:.2f} pixels".format(filament_thickness),
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 0, 255),
-        2,
-    )
+    if add_info:
+        # Display the processed frame with information about the thickness
+        cv2.putText(
+            frame,
+            "Filament Thickness: {:.2f} pixels".format(filament_thickness),
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2,
+        )
+        cv2.putText(
+            binary_frame,
+            "Filament Thickness: {:.2f} pixels".format(filament_thickness),
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2,
+        )
 
     # closing all open windows
     cv2.destroyAllWindows()
@@ -167,7 +170,9 @@ def calculate_pixel_multiplier(angle):
 
 def change_calibration_multiplier():
     """The calibration multiplier is used to estimate the current width"""
-
+    if st.session_state.cap:
+        _, frame = st.session_state.cap.read()
+        _, st.session_state.width_pxl = process_image(frame=frame, verbose=0)
     logger = get_logger("CALIBRATION MULTIPLIER", level=logging_level)
     print(f"width      {st.session_state.width_pxl}")
     print(f"reference: {st.session_state.reference}")
@@ -200,8 +205,7 @@ def mask_switcher():
 def add_info_on_the_frame(frame):
     """Draw text and line info on the frame"""
     # When the video starts
-    mask, width_pxl = process_image(frame=frame, verbose=0)
-    width_pxl = width_pxl
+    mask, width_pxl = process_image(frame=frame, add_info=True, verbose=0)
     # show_mask is missed sometimes. need to fix it
     try:
         if st.session_state.show_mask:
@@ -218,7 +222,7 @@ def add_info_on_the_frame(frame):
         angle_multiplier = calculate_pixel_multiplier(angle)
         width_pxl = width_pxl * angle_multiplier
         width_mm = width_pxl * angle_multiplier * st.session_state.width_multiplier
-
+        st.session_state.width_pxl = width_pxl
         # width_multiplier_calibrated = change_calibration_multiplier()
 
         st.session_state.width_list.append(width_mm)
@@ -227,8 +231,8 @@ def add_info_on_the_frame(frame):
 
     print(f"angle_multiplier   {angle_multiplier}")
     print(f"width_multiplier   {st.session_state.width_multiplier}")
-    print(f"ppppppppppppppppppppppp   {width_pxl}")
-    print(f"mmmmmmmmmmmmmmmmmmmmmmm   {width_mm}")
+    print(f"width_pxl   {width_pxl}")
+    print(f"width_mm   {width_mm}")
     return source, width_pxl, width_mm
 
 

@@ -1,9 +1,11 @@
+import stat
+
 from files import *
 from gui_logic import *
 from image_processor import *
 from plot import *
 from utils import *
-from video_processor import set_play_flag, play_or_continue_video
+from video_processor import play_or_continue_video
 import sys
 import os
 
@@ -56,15 +58,18 @@ change_reference = st.sidebar.button("Change reference standard",
 
 input_source = st.sidebar.radio(
     'Input Source',
-    options=['File', 'USB Device']
+    options=['File', 'USB Device'],
+    # on_change=change_video_source
 )
 st.session_state["source"] = input_source
+
 video_file = st.sidebar.file_uploader(
     "Select a video file",
     type=["mp4", "avi", "mov"],
     # on_change=on_video_file_change,
     # key="video_file"
 )
+change_video_source(video_file)
 
 # Show PLAY/STOP button
 play_button = st.sidebar.button("Play",
@@ -140,14 +145,15 @@ with col12:
 # Update title frame first time
 if st.session_state["title_frame_is_blank"]:
     # If this is not a video file:
-    logger.info("Update title frame first time")
+    logger.info(f"Update title frame first time {video_file}")
     if video_file:
-        st.session_state["filename"] = video_file.name
-        st.session_state['video_path'] = get_video_filename()
+        logger.info(video_file)
+
         # Update title frame by first frame of the video
         cap = cv2.VideoCapture(st.session_state['video_path'])
         _, frame = cap.read()
         update_title_frame(frame)
-        st.session_state["title_frame_is_blank"] = False
+    st.session_state["title_frame_is_blank"] = False
+if st.session_state['play']:
+    play_or_continue_video()
 
-play_or_continue_video()

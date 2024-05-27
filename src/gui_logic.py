@@ -1,9 +1,11 @@
 import logging
 
+import cv2
 import streamlit as st
 
 from plot import update_rolling_plot
 from image_processor import update_title_frame
+from files import get_video_filename
 from utils import get_logger
 
 logging_level = logging.DEBUG
@@ -30,4 +32,20 @@ def stop():
         update_rolling_plot(st.session_state["plot_area"])
 
 
+def set_play_flag():
+    st.session_state['play'] = True
 
+
+def change_video_source(video_file):
+    # Close the cap if we change video source
+    # print(st.session_state.source)
+    # if ('cap' in st.session_state) & (st.session_state.source == 'File'):
+    #
+    #     st.session_state.cap = None
+    if video_file:
+        st.session_state["filename"] = video_file.name
+        st.session_state['video_path'] = get_video_filename()
+        cap = cv2.VideoCapture(st.session_state['video_path'])
+        _, frame = cap.read()
+        update_title_frame(frame)
+        del _, frame

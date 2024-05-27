@@ -18,16 +18,13 @@ logging_level = logging.DEBUG
 fps_calculator = FpsCalculator()
 
 
-def set_play_flag():
-    st.session_state['play'] = True
-
-
 def play_or_continue_video():
-    # init_variables()
-    # load_video()
+    logger = get_logger("PLAY OR CONTINUE VIDEO", level=logging_level)
     print('play_or_continue_video')
-    _, st.session_state.width_pxl = process_image(frame=st.session_state.title_frame)
-    print(f"___________ {st.session_state.width_pxl}")
+    _, st.session_state.width_pxl = process_image(
+        frame=st.session_state.title_frame,
+        add_info=False
+    )
 
     if not st.session_state.cap:
         # Create st.session state.cap based on st variables
@@ -35,15 +32,13 @@ def play_or_continue_video():
         open_video_source()
 
     if st.session_state['play']:
-        # Change multiplier from the start
-        change_calibration_multiplier()
-        # cap = st.session_state.cap
         print(f"PLAY   {st.session_state['play']}")
         n_frames = 0
         time_strt = time.time()
         if st.session_state.cap:
-            print('cap is true')
-            init_variables()
+            # Change multiplier from the start
+            change_calibration_multiplier()
+            # init_variables()
             while st.session_state.cap.isOpened():
 
                 ret, frame = st.session_state.cap.read()
@@ -110,31 +105,28 @@ def play_or_continue_video():
 
 def open_video_source():
     """Open a video, return cap into session state"""
-    logger = get_logger("OPEN VIDEO", level=logging_level)
-    logger.info('Try to open the video...')
-    # if st.session_state.cap:
-    #     st.session_state.cap.release()
-    # print(st.session_state["source"])
-    # print(st.session_state["video_path"])
+    logger = get_logger("VIDEO PROCESSOR", level=logging_level)
+
     if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
-        logger.info("Video from file")
+        logger.debug("Video from file")
         video_path = st.session_state["video_path"]
         st.session_state.cap = cv2.VideoCapture(video_path)
-        # st.session_state["play"] = True
-        # launch_video_processing()
     elif st.session_state["source"] == "USB Device":
-        logger.info("Video from USB device")
+        logger.debug("Video from USB device")
         st.session_state.cap = cv2.VideoCapture(0)
-        # st.session_state["play"] = True
-        # launch_video_processing()
     else:
+        try:
+            logger.debug(f"video path {st.session_state['video_path']}")
+            logger.debug(f"st.session_state.source : {st.session_state.source}")
+        except:
+            pass
         logger.info("Select the video first!")
         st.session_state["play"] = False
-    # return cap
+    # return output_cap
 
 
 def launch_video_processing():
-    logger = get_logger('File processor', level=logging_level)
+    logger = get_logger("VIDEO PROCESSOR", level=logging_level)
     if "filename" in st.session_state:
         # check_variables()
         logger.debug('Got the Video file')

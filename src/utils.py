@@ -73,6 +73,8 @@ def mean_rolling(data, fps, seconds=1):
 def init_variables():
     logger = get_logger('VARIABLES CHECKER', level=logging.DEBUG)
     logger.info("session_state variables check")
+    if 'play' not in st.session_state:
+        st.session_state['play'] = False
     if 'status_message' not in st.session_state:
         st.session_state['status_message'] = 'Ready to work!'
     if "title_frame" not in st.session_state:
