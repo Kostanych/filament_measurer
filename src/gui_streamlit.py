@@ -9,11 +9,11 @@ from video_processor import play_or_continue_video
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 
 def update_status(new_message):
-    st.session_state['status_message'] = new_message
+    st.session_state["status_message"] = new_message
     status_bar.text(new_message)
 
 
@@ -29,7 +29,7 @@ init_variables()
 
 # Streamlit elements
 status_bar = st.empty()
-status_bar.text(st.session_state['status_message'])
+status_bar.text(st.session_state["status_message"])
 st.title("Filament Measurer")
 
 # Sidebar
@@ -50,15 +50,16 @@ def set_or_change_reference():
 with st.sidebar:
     set_or_change_reference()
 
-change_reference = st.sidebar.button("Change reference standard",
-                                key="change_reference",
-                                on_click=change_calibration_multiplier,
-                                # args=(app_state,)
-                                )
+change_reference = st.sidebar.button(
+    "Change reference standard",
+    key="change_reference",
+    on_click=change_calibration_multiplier,
+    # args=(app_state,)
+)
 
 input_source = st.sidebar.radio(
-    'Input Source',
-    options=['File', 'USB Device'],
+    "Input Source",
+    options=["File", "USB Device"],
     # on_change=change_video_source
 )
 st.session_state["source"] = input_source
@@ -72,22 +73,24 @@ video_file = st.sidebar.file_uploader(
 change_video_source(video_file)
 
 # Show PLAY/STOP button
-play_button = st.sidebar.button("Play",
-                                key="play_button",
-                                on_click=set_play_flag,
-                                # args=(app_state,)
-                                )
+play_button = st.sidebar.button(
+    "Play",
+    key="play_button",
+    on_click=set_play_flag,
+    # args=(app_state,)
+)
 
-stop_button = st.sidebar.button("Stop",
-                                key="stop_button",
-                                on_click=stop,
-                                # args=(app_state,)
-                                )
+stop_button = st.sidebar.button(
+    "Stop",
+    key="stop_button",
+    on_click=stop,
+    # args=(app_state,)
+)
 
 mask_radio = st.sidebar.radio(
     "Mask/Image",
     ["Image", "Mask"],
-    key='Mask_or_image',
+    key="Mask_or_image",
     on_change=mask_switcher,
 )
 
@@ -96,10 +99,10 @@ col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
 with col1:
     st.header("Video")
     # Switcher videofile\webcamera
-    if input_source == 'File':
+    if input_source == "File":
         # print(st.session_state.title_frame)
         st.session_state.vid_area = st.image(st.session_state.title_frame)
-    elif input_source == 'USB Device':
+    elif input_source == "USB Device":
         # This part is for the streamlit_webrtc library
         # st.session_state.vid_area = webcam_input(app_state)
         # placeholder
@@ -127,7 +130,7 @@ with col3:
 # Plot display area
 col11, col12 = st.columns([0.8, 0.2])
 with col11:
-    if not st.session_state['width_list']:
+    if not st.session_state["width_list"]:
         st.session_state.plot_area = st.empty()
     else:
         update_rolling_plot(st.session_state.plot_area)
@@ -150,10 +153,9 @@ if st.session_state["title_frame_is_blank"]:
         logger.info(video_file)
 
         # Update title frame by first frame of the video
-        cap = cv2.VideoCapture(st.session_state['video_path'])
+        cap = cv2.VideoCapture(st.session_state["video_path"])
         _, frame = cap.read()
         update_title_frame(frame)
     st.session_state["title_frame_is_blank"] = False
-if st.session_state['play']:
+if st.session_state["play"]:
     play_or_continue_video()
-

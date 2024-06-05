@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "filament-measurer"
+version = "0.1.0"
+description = "Plactic filament production control system"
+authors = ["KOS <kostanych1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+streamlit = "^1.35.0"
+scipy = "^1.13.1"
+opencv-python-headless = "^4.10.0.82"
+pandas = "^2.2.2"
+matplotlib = "^3.9.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

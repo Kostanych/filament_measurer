@@ -28,7 +28,7 @@ def process_column(row_orig: pd.Series, threshhold=10):
     row = row_orig.copy()
     row = row.astype(bool)
     row_res = row.ne(row.shift()).cumsum()
-    row_base = (row_res.value_counts(normalize=False).rename('c').to_frame())
+    row_base = row_res.value_counts(normalize=False).rename("c").to_frame()
 
     # # find correct and wrong '0'
     # row_0 = row_base[(row_base.index % 2 != 0) & (row_base.c > threshhold)]
@@ -75,5 +75,3 @@ def process_contours(mask):
     contour_mask = np.zeros_like(mask)
     cv2.fillPoly(contour_mask, pts=[contours[max_contour]], color=(255, 255, 255))
     return contour_mask
-
-

@@ -12,4 +12,4 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 
 
 class Config:
-    DATA_PATH = ''
+    DATA_PATH = ""

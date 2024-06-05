@@ -14,11 +14,7 @@ logging_level = logging.DEBUG
 class AppState:
     def __init__(self):
         # TODO: must be lite this dict
-        self.state = {
-            "show_mask": False,
-            "width_multiplier": 1,
-            'width_list': []
-        }
+        self.state = {"show_mask": False, "width_multiplier": 1, "width_list": []}
         self.show_mask = False
         self.width_multiplier = 1
         self.width_list = []
@@ -59,7 +55,7 @@ def get_logger(name: str = None, level=logging.INFO):
 
 
 def mean_rolling(data, fps, seconds=1):
-    """ Calculate mean rolling value for N seconds."""
+    """Calculate mean rolling value for N seconds."""
     # N for the rolling mean is len of an array, or frames of one second.
     if len(data) < fps * seconds:
         n = len(data)
@@ -67,22 +63,22 @@ def mean_rolling(data, fps, seconds=1):
         n = int(fps * seconds)
     # print(f"NNNNNNNN     {n}")
     # calculate moving average
-    return pd.Series(data).rolling(window=n).mean().iloc[n - 1:].values[-1]
+    return pd.Series(data).rolling(window=n).mean().iloc[n - 1 :].values[-1]
 
 
 def init_variables():
-    logger = get_logger('VARIABLES CHECKER', level=logging.DEBUG)
+    logger = get_logger("VARIABLES CHECKER", level=logging.DEBUG)
     logger.info("session_state variables check")
-    if 'play' not in st.session_state:
-        st.session_state['play'] = False
-    if 'status_message' not in st.session_state:
-        st.session_state['status_message'] = 'Ready to work!'
+    if "play" not in st.session_state:
+        st.session_state["play"] = False
+    if "status_message" not in st.session_state:
+        st.session_state["status_message"] = "Ready to work!"
     if "title_frame" not in st.session_state:
-        st.session_state['title_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
+        st.session_state["title_frame"] = np.full((480, 640, 3), 255, dtype=np.uint8)
     if "title_frame_is_blank" not in st.session_state:
-        st.session_state['title_frame_is_blank'] = True
+        st.session_state["title_frame_is_blank"] = True
     if "last_frame" not in st.session_state:
-        st.session_state['last_frame'] = np.full((480, 640, 3), 255, dtype=np.uint8)
+        st.session_state["last_frame"] = np.full((480, 640, 3), 255, dtype=np.uint8)
     # if "filename" not in st.session_state:
     #     st.session_state["filename"] = ''
     if "width_list" not in st.session_state:
@@ -116,7 +112,7 @@ def init_variables():
     if "difference" not in st.session_state:
         st.session_state["difference"] = 0
     if "prev_time" not in st.session_state:
-        st.session_state['prev_time'] = 0
+        st.session_state["prev_time"] = 0
     if "fps" not in st.session_state:
         st.session_state["fps"] = 24
 
@@ -161,7 +157,9 @@ class FpsCalculator:
     def _clean_old_timestamps(self):
         """Delete timestamps older than 'interval' seconds"""
         current_time = time.time()
-        self.frame_timestamps = [ts for ts in self.frame_timestamps if current_time - ts <= self.interval]
+        self.frame_timestamps = [
+            ts for ts in self.frame_timestamps if current_time - ts <= self.interval
+        ]
 
     def get_fps(self):
         """Return mean FPS for 'interval' seconds"""

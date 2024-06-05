@@ -6,11 +6,22 @@ import cv2
 import streamlit as st
 import pandas as pd
 
-from image_processor import add_info_on_the_frame, draw_fps, draw_n_frames, \
-    update_title_frame, change_calibration_multiplier, process_image
+from image_processor import (
+    add_info_on_the_frame,
+    draw_fps,
+    draw_n_frames,
+    update_title_frame,
+    change_calibration_multiplier,
+    process_image,
+)
 from plot import update_rolling_plot
-from utils import get_logger, make_result_df, mean_rolling, \
-    FpsCalculator, init_variables
+from utils import (
+    get_logger,
+    make_result_df,
+    mean_rolling,
+    FpsCalculator,
+    init_variables,
+)
 
 logger = get_logger()
 logging_level = logging.DEBUG
@@ -20,18 +31,17 @@ fps_calculator = FpsCalculator()
 
 def play_or_continue_video():
     logger = get_logger("PLAY OR CONTINUE VIDEO", level=logging_level)
-    print('play_or_continue_video')
+    print("play_or_continue_video")
     _, st.session_state.width_pxl = process_image(
-        frame=st.session_state.title_frame,
-        add_info=False
+        frame=st.session_state.title_frame, add_info=False
     )
 
     if not st.session_state.cap:
         # Create st.session state.cap based on st variables
-        logger.info('st.session_state.cap does not exist')
+        logger.info("st.session_state.cap does not exist")
         open_video_source()
 
-    if st.session_state['play']:
+    if st.session_state["play"]:
         print(f"PLAY   {st.session_state['play']}")
         n_frames = 0
         time_strt = time.time()
@@ -47,7 +57,11 @@ def play_or_continue_video():
                     fps = fps_calculator.get_fps()  # Get mean FPS
 
                     # time_start = time.time()
-                    source, st.session_state.width_pxl, st.session_state.width_mm = add_info_on_the_frame(
+                    (
+                        source,
+                        st.session_state.width_pxl,
+                        st.session_state.width_mm,
+                    ) = add_info_on_the_frame(
                         frame,
                         # app_state
                     )
@@ -65,7 +79,7 @@ def play_or_continue_video():
 
                     # Place processed image on the video area
                     st.session_state.vid_area.image(source)
-                    st.session_state['last_frame'] = source
+                    st.session_state["last_frame"] = source
 
                     # time.sleep(1 / fps)  # keep the fps the same as the original fps
 
@@ -90,11 +104,11 @@ def play_or_continue_video():
                     # End of video
                     logger.info("END OF PLAYBACK")
                     st.session_state.play = False
-                    st.session_state['last_frame'] = source
+                    st.session_state["last_frame"] = source
                     st.session_state.cap.release()
                     st.session_state.cap = None
                     break  # Close cycle
-        update_title_frame(st.session_state['last_frame'])
+        update_title_frame(st.session_state["last_frame"])
         real_fps = n_frames / (time.time() - time_strt)
         print(n_frames)
         print(time.time())
@@ -129,9 +143,9 @@ def launch_video_processing():
     logger = get_logger("VIDEO PROCESSOR", level=logging_level)
     if "filename" in st.session_state:
         # check_variables()
-        logger.debug('Got the Video file')
+        logger.debug("Got the Video file")
         # Get filename, set title frame
-        logger.debug('Start to load the video')
+        logger.debug("Start to load the video")
 
 
 def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
@@ -141,13 +155,14 @@ def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
 
     time_start = time.time()
     image = frame.to_ndarray(format="bgr24")
-    image, st.session_state.width_pxl, st.session_state.width_mm = add_info_on_the_frame(
+    (
         image,
-        app_state
-    )
+        st.session_state.width_pxl,
+        st.session_state.width_mm,
+    ) = add_info_on_the_frame(image, app_state)
 
     time_end = time.time()
-    fps = 1/(time_end - time_start)
+    fps = 1 / (time_end - time_start)
     st.session_state.fps = fps
 
     # Plot the plot

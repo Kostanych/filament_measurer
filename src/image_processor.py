@@ -181,7 +181,7 @@ def change_calibration_multiplier():
         if st.session_state.width_pxl == 0:
             st.session_state.width_pxl = 160
         st.session_state.width_multiplier = (
-                st.session_state.reference / st.session_state.width_pxl
+            st.session_state.reference / st.session_state.width_pxl
         )
     except Exception as e:
         logger.info(repr(e))
@@ -199,7 +199,7 @@ def mask_switcher():
         st.session_state.show_mask = False
     else:
         st.session_state.show_mask = True
-    logger.info(f'Switched! Show mask: {st.session_state.show_mask}!')
+    logger.info(f"Switched! Show mask: {st.session_state.show_mask}!")
 
 
 def add_info_on_the_frame(frame):
@@ -242,5 +242,3 @@ def update_title_frame(frame):
     """
     st.session_state.title_frame = frame
     st.session_state.vid_area.image(st.session_state.title_frame)
-
-
