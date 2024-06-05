@@ -11,6 +11,8 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
+sys.path.append(os.path.abspath(".."))
+
 
 def update_status(new_message):
     st.session_state["status_message"] = new_message
@@ -25,7 +27,6 @@ st.set_page_config(layout="wide")
 
 # Session variables
 init_variables()
-# app_state = AppState()
 
 # Streamlit elements
 status_bar = st.empty()
@@ -44,7 +45,6 @@ def set_or_change_reference():
         value=float(1.75),
         # on_change=change_calibration_multiplier
     )
-    # Change the reference
 
 
 with st.sidebar:
@@ -87,12 +87,20 @@ stop_button = st.sidebar.button(
     # args=(app_state,)
 )
 
+update_interval = st.sidebar.selectbox(
+    "Update Interval",
+    options=["Every Frame", "1 Second", "5 Seconds"],
+    index=0,
+)
+st.session_state["update_interval"] = update_interval
+
 mask_radio = st.sidebar.radio(
     "Mask/Image",
     ["Image", "Mask"],
     key="Mask_or_image",
     on_change=mask_switcher,
 )
+
 
 # Image display area
 col1, col2, col3 = st.columns([0.3, 0.2, 0.2])

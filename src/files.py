@@ -1,5 +1,6 @@
 import os
 import logging
+from pathlib import Path
 
 import cv2
 import streamlit as st
@@ -15,11 +16,11 @@ def get_video_filename():
     """Get file name"""
     logger = get_logger("GET VIDEO FILENAME", level=logging_level)
     logger.info("GET FILENAME...")
-    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = ROOT_DIR + "/data/input/" + st.session_state["filename"]
+    ROOT_DIR = Path(__file__).resolve().parent.parent
+    filename = Path(ROOT_DIR, "data", "input", st.session_state["filename"])
     logger.info(f"st.session_state['filename']  {st.session_state['filename']}")
     # Return a normalized path.
-    return os.path.normpath(filename)
+    return filename
 
 
 def load_video(video_file):

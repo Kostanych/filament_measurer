@@ -1,4 +1,5 @@
 """Utilities file"""
+
 import sys
 import time
 
@@ -69,58 +70,40 @@ def mean_rolling(data, fps, seconds=1):
 def init_variables():
     logger = get_logger("VARIABLES CHECKER", level=logging.DEBUG)
     logger.info("session_state variables check")
-    if "play" not in st.session_state:
-        st.session_state["play"] = False
-    if "status_message" not in st.session_state:
-        st.session_state["status_message"] = "Ready to work!"
-    if "title_frame" not in st.session_state:
-        st.session_state["title_frame"] = np.full((480, 640, 3), 255, dtype=np.uint8)
-    if "title_frame_is_blank" not in st.session_state:
-        st.session_state["title_frame_is_blank"] = True
-    if "last_frame" not in st.session_state:
-        st.session_state["last_frame"] = np.full((480, 640, 3), 255, dtype=np.uint8)
-    # if "filename" not in st.session_state:
-    #     st.session_state["filename"] = ''
-    if "width_list" not in st.session_state:
-        st.session_state["width_list"] = []
-    if "source" not in st.session_state:
-        st.session_state["source"] = "File"
-    if "cap" not in st.session_state:
-        st.session_state["cap"] = None
-    if "show_mask" not in st.session_state:
-        st.session_state["show_mask"] = False
-    if "show_every_n_frame" not in st.session_state:
-        st.session_state["show_every_n_frame"] = 1
-    if "df_points" not in st.session_state:
-        st.session_state["df_points"] = pd.DataFrame()
-    if "width_pxl" not in st.session_state:
-        st.session_state["width_pxl"] = 1
-    if "width_mm" not in st.session_state:
-        st.session_state["width_mm"] = 1
-    if "reference" not in st.session_state:
-        st.session_state["reference"] = 1.75
-    if "width_multiplier" not in st.session_state:
-        st.session_state["width_multiplier"] = 0.005
-    if "rolling_1s" not in st.session_state:
-        st.session_state["rolling_1s"] = 0
-    if "rolling_10s" not in st.session_state:
-        st.session_state["rolling_10s"] = 0
-    if "mean_1" not in st.session_state:
-        st.session_state["mean_1"] = []
-    if "mean_2" not in st.session_state:
-        st.session_state["mean_2"] = []
-    if "difference" not in st.session_state:
-        st.session_state["difference"] = 0
-    if "prev_time" not in st.session_state:
-        st.session_state["prev_time"] = 0
-    if "fps" not in st.session_state:
-        st.session_state["fps"] = 24
+    default_values = {
+        "play": False,
+        "status_message": "Ready to work!",
+        "title_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
+        "title_frame_is_blank": True,
+        "last_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
+        "width_list": [],
+        "source": "File",
+        "cap": None,
+        "show_mask": False,
+        "show_every_n_frame": 1,
+        "df_points": pd.DataFrame(),
+        "width_pxl": 1,
+        "width_mm": 1,
+        "reference": 1.75,
+        "width_multiplier": 0.005,
+        "rolling_1s": 0,
+        "rolling_10s": 0,
+        "mean_1": [],
+        "mean_2": [],
+        "difference": 0,
+        "prev_time": 0,
+        "fps": 24,
+        "update_interval": 0,
+    }
+    for key, value in default_values.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
     # if st.session_state["width_pxl"] == 0:
     #     st.session_state["width_pxl"] = 1
 
 
-def make_result_df(num_seconds=2) -> pd.DataFrame():
+def make_result_df(num_seconds=2) -> pd.DataFrame:
     """
     Consumes dataframe and melt it to display on the Altair plot
     Returns:

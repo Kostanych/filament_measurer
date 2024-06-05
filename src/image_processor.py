@@ -1,3 +1,5 @@
+import os
+import sys
 import cv2
 import numpy as np
 from scipy.optimize import curve_fit
@@ -10,6 +12,8 @@ import logging
 
 # logging_level = logging.INFO
 logging_level = logging.DEBUG
+
+sys.path.append(os.path.abspath(".."))
 
 
 def load_image_into_numpy_array(path):

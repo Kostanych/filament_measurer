@@ -1,4 +1,6 @@
 import logging
+import os
+import sys
 import time
 
 import av
@@ -28,6 +30,8 @@ logging_level = logging.DEBUG
 
 fps_calculator = FpsCalculator()
 
+sys.path.append(os.path.abspath(".."))
+
 
 def play_or_continue_video():
     logger = get_logger("PLAY OR CONTINUE VIDEO", level=logging_level)
@@ -37,84 +41,61 @@ def play_or_continue_video():
     )
 
     if not st.session_state.cap:
-        # Create st.session state.cap based on st variables
-        logger.info("st.session_state.cap does not exist")
         open_video_source()
 
     if st.session_state["play"]:
-        print(f"PLAY   {st.session_state['play']}")
         n_frames = 0
         time_strt = time.time()
+        last_update_time = time.time()
         if st.session_state.cap:
-            # Change multiplier from the start
             change_calibration_multiplier()
-            # init_variables()
             while st.session_state.cap.isOpened():
-
                 ret, frame = st.session_state.cap.read()
                 if ret:
-                    fps_calculator.tick()  # Update time
-                    fps = fps_calculator.get_fps()  # Get mean FPS
-
-                    # time_start = time.time()
+                    fps_calculator.tick()
+                    fps = fps_calculator.get_fps()
                     (
                         source,
                         st.session_state.width_pxl,
                         st.session_state.width_mm,
-                    ) = add_info_on_the_frame(
-                        frame,
-                        # app_state
-                    )
-                    # app_state.add_width(width_mm)
+                    ) = add_info_on_the_frame(frame)
                     n_frames += 1
-
-                    # Process variables
                     st.session_state.fps = fps
-
-                    # Plot the plot
                     plot_means()
-
                     source = draw_fps(source, fps)
                     source = draw_n_frames(source, n_frames)
-
-                    # Place processed image on the video area
                     st.session_state.vid_area.image(source)
                     st.session_state["last_frame"] = source
 
-                    # time.sleep(1 / fps)  # keep the fps the same as the original fps
+                    current_time = time.time()
+                    update_interval = st.session_state["update_interval"]
+                    if (
+                        (update_interval == "Every Frame")
+                        or (
+                            update_interval == "1 Second"
+                            and current_time - last_update_time >= 1
+                        )
+                        or (
+                            update_interval == "5 Seconds"
+                            and current_time - last_update_time >= 5
+                        )
+                    ):
 
-                    try:
                         chart_data = make_result_df()
-                    except Exception as e:
-                        print(repr(e))
-                        chart_data = pd.DataFrame()
-
-                    # Plot results
-                    try:
                         st.session_state.df_points = chart_data
-                        # Update variables
                         update_rolling_plot(st.session_state["plot_area"])
                         st.session_state.difference_markdown.markdown(
                             f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
                             unsafe_allow_html=True,
                         )
-                    except Exception as e:
-                        print(repr(e))
+                        last_update_time = current_time
                 else:
-                    # End of video
-                    logger.info("END OF PLAYBACK")
                     st.session_state.play = False
                     st.session_state["last_frame"] = source
                     st.session_state.cap.release()
                     st.session_state.cap = None
-                    break  # Close cycle
+                    break
         update_title_frame(st.session_state["last_frame"])
-        real_fps = n_frames / (time.time() - time_strt)
-        print(n_frames)
-        print(time.time())
-        print(time_strt)
-        print((time.time() - time_strt))
-        logger.info(f"Real fps: {real_fps}")
 
 
 def open_video_source():

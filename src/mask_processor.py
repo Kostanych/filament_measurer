@@ -15,12 +15,10 @@ def measure_length(img: np.array):
 
 def process_mask(img: np.array):
     processed = img.copy().T
+    thresholds = [1, 5, 100, 100]  # Add all thresholds in a list
     for i, row in enumerate(processed):
-        # this is awful
-        processed[i] = process_column(pd.Series(row), 1)
-        processed[i] = process_column(pd.Series(row), 5)
-        processed[i] = process_column(pd.Series(row), 100)
-        processed[i] = process_column(pd.Series(row), 100)
+        for threshold in thresholds:
+            processed[i] = process_column(pd.Series(row), threshold)
     return processed.T
 
 
