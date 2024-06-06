@@ -1,16 +1,21 @@
-import stat
+# Main UI script
 
-from files import *
-from gui_logic import *
-from image_processor import *
-from plot import *
-from utils import *
-from video_processor import play_or_continue_video
+import logging
+import cv2
+import streamlit as st
+from gui_logic import change_video_source, set_play_flag, stop
+from image_processor import (
+    change_calibration_multiplier,
+    mask_switcher,
+    update_title_frame,
+)
+from plot import update_rolling_plot
+from utils import AppState, get_logger
+from video_processor import VideoProcessor
 import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
 sys.path.append(os.path.abspath(".."))
 
 
@@ -26,7 +31,8 @@ logger = get_logger("STREAMLIT GUI", level=logging_level)
 st.set_page_config(layout="wide")
 
 # Session variables
-init_variables()
+app_state = AppState()
+app_state.init_variables()
 
 # Streamlit elements
 status_bar = st.empty()
@@ -43,7 +49,6 @@ def set_or_change_reference():
     st.session_state["reference"] = st.number_input(
         "Reference width (mm):",
         value=float(1.75),
-        # on_change=change_calibration_multiplier
     )
 
 
@@ -54,21 +59,17 @@ change_reference = st.sidebar.button(
     "Change reference standard",
     key="change_reference",
     on_click=change_calibration_multiplier,
-    # args=(app_state,)
 )
 
 input_source = st.sidebar.radio(
     "Input Source",
     options=["File", "USB Device"],
-    # on_change=change_video_source
 )
 st.session_state["source"] = input_source
 
 video_file = st.sidebar.file_uploader(
     "Select a video file",
     type=["mp4", "avi", "mov"],
-    # on_change=on_video_file_change,
-    # key="video_file"
 )
 change_video_source(video_file)
 
@@ -77,14 +78,12 @@ play_button = st.sidebar.button(
     "Play",
     key="play_button",
     on_click=set_play_flag,
-    # args=(app_state,)
 )
 
 stop_button = st.sidebar.button(
     "Stop",
     key="stop_button",
     on_click=stop,
-    # args=(app_state,)
 )
 
 update_interval = st.sidebar.selectbox(
@@ -101,19 +100,13 @@ mask_radio = st.sidebar.radio(
     on_change=mask_switcher,
 )
 
-
 # Image display area
 col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
 with col1:
     st.header("Video")
-    # Switcher videofile\webcamera
     if input_source == "File":
-        # print(st.session_state.title_frame)
         st.session_state.vid_area = st.image(st.session_state.title_frame)
     elif input_source == "USB Device":
-        # This part is for the streamlit_webrtc library
-        # st.session_state.vid_area = webcam_input(app_state)
-        # placeholder
         st.session_state.vid_area = st.image(st.session_state.title_frame)
 
 with col2:
@@ -155,15 +148,16 @@ with col12:
 
 # Update title frame first time
 if st.session_state["title_frame_is_blank"]:
-    # If this is not a video file:
     logger.info(f"Update title frame first time {video_file}")
     if video_file:
         logger.info(video_file)
-
-        # Update title frame by first frame of the video
         cap = cv2.VideoCapture(st.session_state["video_path"])
         _, frame = cap.read()
         update_title_frame(frame)
     st.session_state["title_frame_is_blank"] = False
+
+# Initialize VideoProcessor
+video_processor = VideoProcessor()
+
 if st.session_state["play"]:
-    play_or_continue_video()
+    video_processor.play_or_continue_video()

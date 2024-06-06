@@ -12,20 +12,68 @@ logging_level = logging.INFO
 logging_level = logging.DEBUG
 
 
+# utils.py
+
+import streamlit as st
+import numpy as np
+import pandas as pd
+import logging
+import sys
+import time
+
+logging_level = logging.DEBUG
+
+
 class AppState:
     def __init__(self):
-        # TODO: must be lite this dict
-        self.state = {"show_mask": False, "width_multiplier": 1, "width_list": []}
-        self.show_mask = False
-        self.width_multiplier = 1
-        self.width_list = []
+        self.init_variables()
 
-    def update(self, show_mask, width_multiplier):
-        self.show_mask = show_mask
-        self.width_multiplier = width_multiplier
+    def init_variables(self):
+        logger = self.get_logger("VARIABLES CHECKER", level=logging.DEBUG)
+        logger.info("session_state variables check")
+        default_values = {
+            "play": False,
+            "status_message": "Ready to work!",
+            "title_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
+            "title_frame_is_blank": True,
+            "last_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
+            "width_list": [],
+            "source": "File",
+            "cap": None,
+            "show_mask": False,
+            "show_every_n_frame": 1,
+            "df_points": pd.DataFrame(),
+            "width_pxl": 1,
+            "width_mm": 1,
+            "reference": 1.75,
+            "width_multiplier": 0.005,
+            "rolling_1s": 0,
+            "rolling_10s": 0,
+            "mean_1": [],
+            "mean_2": [],
+            "difference": 0,
+            "prev_time": 0,
+            "fps": 24,
+            "update_interval": "Every Frame",
+        }
+        for key, value in default_values.items():
+            if key not in st.session_state:
+                st.session_state[key] = value
 
-    def add_width(self, width_mm):
-        self.width_list.append(width_mm)
+    def get_logger(self, name: str = None, level=logging.INFO):
+        logger = logging.getLogger(name)
+        logger.handlers = []
+        stdout = logging.StreamHandler(sys.stdout)
+        fmt = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%m/%d/%Y %I:%M:%S %p",
+        )
+        stdout.setFormatter(fmt)
+        stdout.setLevel(level)
+        logger.addHandler(stdout)
+        logger.setLevel(level)
+        logger.propagate = False
+        return logger
 
 
 def get_logger(name: str = None, level=logging.INFO):
@@ -67,40 +115,40 @@ def mean_rolling(data, fps, seconds=1):
     return pd.Series(data).rolling(window=n).mean().iloc[n - 1 :].values[-1]
 
 
-def init_variables():
-    logger = get_logger("VARIABLES CHECKER", level=logging.DEBUG)
-    logger.info("session_state variables check")
-    default_values = {
-        "play": False,
-        "status_message": "Ready to work!",
-        "title_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
-        "title_frame_is_blank": True,
-        "last_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
-        "width_list": [],
-        "source": "File",
-        "cap": None,
-        "show_mask": False,
-        "show_every_n_frame": 1,
-        "df_points": pd.DataFrame(),
-        "width_pxl": 1,
-        "width_mm": 1,
-        "reference": 1.75,
-        "width_multiplier": 0.005,
-        "rolling_1s": 0,
-        "rolling_10s": 0,
-        "mean_1": [],
-        "mean_2": [],
-        "difference": 0,
-        "prev_time": 0,
-        "fps": 24,
-        "update_interval": 0,
-    }
-    for key, value in default_values.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+# def init_variables():
+#     logger = get_logger("VARIABLES CHECKER", level=logging.DEBUG)
+#     logger.info("session_state variables check")
+#     default_values = {
+#         "play": False,
+#         "status_message": "Ready to work!",
+#         "title_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
+#         "title_frame_is_blank": True,
+#         "last_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
+#         "width_list": [],
+#         "source": "File",
+#         "cap": None,
+#         "show_mask": False,
+#         "show_every_n_frame": 1,
+#         "df_points": pd.DataFrame(),
+#         "width_pxl": 1,
+#         "width_mm": 1,
+#         "reference": 1.75,
+#         "width_multiplier": 0.005,
+#         "rolling_1s": 0,
+#         "rolling_10s": 0,
+#         "mean_1": [],
+#         "mean_2": [],
+#         "difference": 0,
+#         "prev_time": 0,
+#         "fps": 24,
+#         "update_interval": 0,
+#     }
+#     for key, value in default_values.items():
+#         if key not in st.session_state:
+#             st.session_state[key] = value
 
-    # if st.session_state["width_pxl"] == 0:
-    #     st.session_state["width_pxl"] = 1
+#     # if st.session_state["width_pxl"] == 0:
+#     #     st.session_state["width_pxl"] = 1
 
 
 def make_result_df(num_seconds=2) -> pd.DataFrame:

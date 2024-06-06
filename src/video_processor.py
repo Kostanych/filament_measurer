@@ -1,13 +1,11 @@
-import logging
-import os
-import sys
-import time
+# video_processor.py
 
-import av
+import logging
 import cv2
 import streamlit as st
-import pandas as pd
-
+import time
+from utils import AppState, FpsCalculator, get_logger, mean_rolling, make_result_df
+from plot import update_rolling_plot
 from image_processor import (
     add_info_on_the_frame,
     draw_fps,
@@ -16,108 +14,113 @@ from image_processor import (
     change_calibration_multiplier,
     process_image,
 )
-from plot import update_rolling_plot
-from utils import (
-    get_logger,
-    make_result_df,
-    mean_rolling,
-    FpsCalculator,
-    init_variables,
-)
 
-logger = get_logger()
 logging_level = logging.DEBUG
 
-fps_calculator = FpsCalculator()
 
-sys.path.append(os.path.abspath(".."))
+class VideoProcessor:
+    def __init__(self):
+        self.state = AppState()
+        self.logger = self.state.get_logger("VIDEO PROCESSOR", level=logging.DEBUG)
+        self.fps_calculator = FpsCalculator()
+        self.last_update_time = time.time()
 
+    def play_or_continue_video(self):
+        self.logger.info("play_or_continue_video")
+        _, st.session_state.width_pxl = process_image(
+            frame=st.session_state.title_frame, add_info=False
+        )
 
-def play_or_continue_video():
-    logger = get_logger("PLAY OR CONTINUE VIDEO", level=logging_level)
-    print("play_or_continue_video")
-    _, st.session_state.width_pxl = process_image(
-        frame=st.session_state.title_frame, add_info=False
-    )
+        if not st.session_state.cap:
+            self.open_video_source()
 
-    if not st.session_state.cap:
-        open_video_source()
+        if st.session_state["play"]:
+            n_frames = 0
+            time_strt = time.time()
+            self.last_update_time = time.time()
+            if st.session_state.cap:
+                change_calibration_multiplier()
+                while st.session_state.cap.isOpened():
+                    ret, frame = st.session_state.cap.read()
+                    if ret:
+                        source = self.process_frame(frame, n_frames)
+                        n_frames += 1
+                        current_time = time.time()
+                        update_interval = st.session_state["update_interval"]
+                        if (
+                            (update_interval == "Every Frame")
+                            or (
+                                update_interval == "1 Second"
+                                and current_time - self.last_update_time >= 1
+                            )
+                            or (
+                                update_interval == "5 Seconds"
+                                and current_time - self.last_update_time >= 5
+                            )
+                        ):
+                            self.update_plot(current_time)
+                    else:
+                        self.stop_video(source)
+                        break
+            update_title_frame(st.session_state["last_frame"])
 
-    if st.session_state["play"]:
-        n_frames = 0
-        time_strt = time.time()
-        last_update_time = time.time()
-        if st.session_state.cap:
-            change_calibration_multiplier()
-            while st.session_state.cap.isOpened():
-                ret, frame = st.session_state.cap.read()
-                if ret:
-                    fps_calculator.tick()
-                    fps = fps_calculator.get_fps()
-                    (
-                        source,
-                        st.session_state.width_pxl,
-                        st.session_state.width_mm,
-                    ) = add_info_on_the_frame(frame)
-                    n_frames += 1
-                    st.session_state.fps = fps
-                    plot_means()
-                    source = draw_fps(source, fps)
-                    source = draw_n_frames(source, n_frames)
-                    st.session_state.vid_area.image(source)
-                    st.session_state["last_frame"] = source
+    def process_frame(self, frame, n_frames):
+        self.fps_calculator.tick()
+        fps = self.fps_calculator.get_fps()
+        (
+            source,
+            st.session_state.width_pxl,
+            st.session_state.width_mm,
+        ) = add_info_on_the_frame(frame)
+        st.session_state.fps = fps
+        plot_means()
+        source = draw_fps(source, fps)
+        source = draw_n_frames(source, n_frames)
+        st.session_state.vid_area.image(source)
+        st.session_state["last_frame"] = source
+        return source
 
-                    current_time = time.time()
-                    update_interval = st.session_state["update_interval"]
-                    if (
-                        (update_interval == "Every Frame")
-                        or (
-                            update_interval == "1 Second"
-                            and current_time - last_update_time >= 1
-                        )
-                        or (
-                            update_interval == "5 Seconds"
-                            and current_time - last_update_time >= 5
-                        )
-                    ):
+    def update_plot(self, current_time):
+        chart_data = make_result_df()
+        st.session_state.df_points = chart_data
+        update_rolling_plot(st.session_state["plot_area"])
+        st.session_state.difference_markdown.markdown(
+            f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
+            unsafe_allow_html=True,
+        )
+        self.last_update_time = current_time
+        # last_update_time = current_time
+        # return last_update_time
 
-                        chart_data = make_result_df()
-                        st.session_state.df_points = chart_data
-                        update_rolling_plot(st.session_state["plot_area"])
-                        st.session_state.difference_markdown.markdown(
-                            f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
-                            unsafe_allow_html=True,
-                        )
-                        last_update_time = current_time
-                else:
-                    st.session_state.play = False
-                    st.session_state["last_frame"] = source
-                    st.session_state.cap.release()
-                    st.session_state.cap = None
-                    break
-        update_title_frame(st.session_state["last_frame"])
+    def open_video_source(self):
+        if ("video_path" in st.session_state) and (
+            st.session_state["source"] == "File"
+        ):
+            self.logger.debug("Video from file")
+            video_path = st.session_state["video_path"]
+            st.session_state.cap = cv2.VideoCapture(video_path)
+        elif st.session_state["source"] == "USB Device":
+            self.logger.debug("Video from USB device")
+            st.session_state.cap = cv2.VideoCapture(0)
+        else:
+            self.logger.info("Select the video first!")
+            st.session_state["play"] = False
 
+    def stop_video(self, source):
+        st.session_state.play = False
+        st.session_state["last_frame"] = source
+        st.session_state.cap.release()
+        st.session_state.cap = None
 
-def open_video_source():
-    """Open a video, return cap into session state"""
-    logger = get_logger("VIDEO PROCESSOR", level=logging_level)
-
-    if ("video_path" in st.session_state) and (st.session_state["source"] == "File"):
-        logger.debug("Video from file")
-        video_path = st.session_state["video_path"]
-        st.session_state.cap = cv2.VideoCapture(video_path)
-    elif st.session_state["source"] == "USB Device":
-        logger.debug("Video from USB device")
-        st.session_state.cap = cv2.VideoCapture(0)
-    else:
-        try:
-            logger.debug(f"video path {st.session_state['video_path']}")
-            logger.debug(f"st.session_state.source : {st.session_state.source}")
-        except:
-            pass
-        logger.info("Select the video first!")
-        st.session_state["play"] = False
-    # return output_cap
+    def get_update_interval(self):
+        update_interval = st.session_state["update_interval"]
+        if update_interval == "Every Frame":
+            return 0
+        elif update_interval == "1 Second":
+            return 1
+        elif update_interval == "5 Seconds":
+            return 5
+        return 0
 
 
 def launch_video_processing():
@@ -127,40 +130,6 @@ def launch_video_processing():
         logger.debug("Got the Video file")
         # Get filename, set title frame
         logger.debug("Start to load the video")
-
-
-def webcam_callback(frame: av.VideoFrame, app_state) -> av.VideoFrame:
-
-    # fps_calculator.tick()  # Update time
-    # fps = fps_calculator.get_fps()  # Get mean FPS
-
-    time_start = time.time()
-    image = frame.to_ndarray(format="bgr24")
-    (
-        image,
-        st.session_state.width_pxl,
-        st.session_state.width_mm,
-    ) = add_info_on_the_frame(image, app_state)
-
-    time_end = time.time()
-    fps = 1 / (time_end - time_start)
-    st.session_state.fps = fps
-
-    # Plot the plot
-    plot_means(app_state)
-
-    fps_text = f"FPS: { fps:.1f}"
-    cv2.putText(
-        image,
-        fps_text,
-        (10, image.shape[0] - 10),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 255, 0),
-        2,
-    )
-
-    return av.VideoFrame.from_ndarray(image, format="bgr24")
 
 
 def plot_means():
