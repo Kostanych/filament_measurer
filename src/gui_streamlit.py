@@ -1,4 +1,4 @@
-# Main UI script
+"""Main UI script for Filament Measurer application"""
 
 import logging
 import cv2
@@ -12,19 +12,14 @@ from image_processor import (
 from plot import update_rolling_plot
 from utils import AppState, get_logger
 from video_processor import VideoProcessor
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-sys.path.append(os.path.abspath(".."))
 
 
 def update_status(new_message):
+    """Update status bar with new message"""
     st.session_state["status_message"] = new_message
     status_bar.text(new_message)
 
 
-# logging_level = logging.INFO
 logging_level = logging.DEBUG
 
 logger = get_logger("STREAMLIT GUI", level=logging_level)
@@ -104,10 +99,7 @@ mask_radio = st.sidebar.radio(
 col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
 with col1:
     st.header("Video")
-    if input_source == "File":
-        st.session_state.vid_area = st.image(st.session_state.title_frame)
-    elif input_source == "USB Device":
-        st.session_state.vid_area = st.image(st.session_state.title_frame)
+    st.session_state.vid_area = st.image(st.session_state.title_frame)
 
 with col2:
     st.header("Results")

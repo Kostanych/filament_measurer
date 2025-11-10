@@ -1,4 +1,4 @@
-# video_processor.py
+"""Video processing module for handling video stream and frame processing"""
 
 import logging
 import cv2
@@ -19,6 +19,7 @@ logging_level = logging.DEBUG
 
 
 class VideoProcessor:
+    """Handles video processing, frame-by-frame analysis, and display updates"""
     def __init__(self):
         self.state = AppState()
         self.logger = self.state.get_logger("VIDEO PROCESSOR", level=logging.DEBUG)
@@ -26,6 +27,7 @@ class VideoProcessor:
         self.last_update_time = time.time()
 
     def play_or_continue_video(self):
+        """Main method to play or continue video processing"""
         self.logger.info("play_or_continue_video")
         _, st.session_state.width_pxl = process_image(
             frame=st.session_state.title_frame, add_info=False
@@ -36,7 +38,6 @@ class VideoProcessor:
 
         if st.session_state["play"]:
             n_frames = 0
-            time_strt = time.time()
             self.last_update_time = time.time()
             if st.session_state.cap:
                 change_calibration_multiplier()
@@ -65,6 +66,7 @@ class VideoProcessor:
             update_title_frame(st.session_state["last_frame"])
 
     def process_frame(self, frame, n_frames):
+        """Process single video frame and update display"""
         self.fps_calculator.tick()
         fps = self.fps_calculator.get_fps()
         (
@@ -81,6 +83,7 @@ class VideoProcessor:
         return source
 
     def update_plot(self, current_time):
+        """Update plot and difference display"""
         chart_data = make_result_df()
         st.session_state.df_points = chart_data
         update_rolling_plot(st.session_state["plot_area"])
@@ -89,10 +92,9 @@ class VideoProcessor:
             unsafe_allow_html=True,
         )
         self.last_update_time = current_time
-        # last_update_time = current_time
-        # return last_update_time
 
     def open_video_source(self):
+        """Open video source (file or USB device)"""
         if ("video_path" in st.session_state) and (
             st.session_state["source"] == "File"
         ):
@@ -107,32 +109,15 @@ class VideoProcessor:
             st.session_state["play"] = False
 
     def stop_video(self, source):
+        """Stop video playback and release resources"""
         st.session_state.play = False
         st.session_state["last_frame"] = source
         st.session_state.cap.release()
         st.session_state.cap = None
 
-    def get_update_interval(self):
-        update_interval = st.session_state["update_interval"]
-        if update_interval == "Every Frame":
-            return 0
-        elif update_interval == "1 Second":
-            return 1
-        elif update_interval == "5 Seconds":
-            return 5
-        return 0
-
-
-def launch_video_processing():
-    logger = get_logger("VIDEO PROCESSOR", level=logging_level)
-    if "filename" in st.session_state:
-        # check_variables()
-        logger.debug("Got the Video file")
-        # Get filename, set title frame
-        logger.debug("Start to load the video")
-
 
 def plot_means():
+    """Calculate and display rolling means for width measurements"""
     # Plot
     st.session_state.rolling_1s = round(
         mean_rolling(st.session_state.width_list, st.session_state.fps), 4
