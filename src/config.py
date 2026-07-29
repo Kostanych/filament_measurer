@@ -26,6 +26,14 @@ class Config:
     DEFAULT_WIDTH_MULTIPLIER = 0.005
     FALLBACK_WIDTH_PXL = 160
 
+    # Keep only the filament on the mask. Dirt on the glass and shadows are
+    # dark too and used to be measured as a part of the filament.
+    FILTER_FILAMENT_CONTOUR = True
+
+    # The filament is pulled through the whole field of view, so its contour
+    # spans the frame from edge to edge. Dirt, however large, does not.
+    MIN_FILAMENT_WIDTH_SPAN = 0.9
+
     # A frame with that many dark pixels is not a filament but a garbage frame
     # (closed shutter, camera warming up). Fitting a line into it is pointless
     # and slow, so the angle is not measured at all.

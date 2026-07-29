@@ -68,6 +68,63 @@ def to_display(image):
     return image
 
 
+def select_filament_contour(contours, frame_width):
+    """
+    Pick the contour that belongs to the filament.
+
+    The filament is pulled through the whole field of view, so it always
+    reaches both edges of the frame, while dirt sits wherever it landed.
+    Size alone is not enough to tell them apart: several specks touching each
+    other add up to a blob larger than a thin filament.
+
+    Args:
+        contours: contours found on the mask.
+        frame_width: width of the frame in pixels.
+
+    Returns:
+        The largest contour among those crossing the frame, or simply the
+        largest one when nothing crosses it.
+    """
+    min_span = frame_width * config.MIN_FILAMENT_WIDTH_SPAN
+    crossing = [
+        contour for contour in contours if cv2.boundingRect(contour)[2] >= min_span
+    ]
+    return max(crossing or contours, key=cv2.contourArea)
+
+
+def keep_filament_contour(mask):
+    """
+    Leave only the filament on the mask, dropping dirt and shadows.
+
+    Dust on the glass and shadows are dark as well, and every dark pixel used
+    to be counted as a part of the filament: a dozen specks in view more than
+    doubled the measured width.
+
+    Args:
+        mask: binary mask where the filament is dark and the background is light.
+
+    Returns:
+        Mask of the same shape holding the filament alone. A mask without any
+        dark pixels is returned untouched.
+    """
+    # Contours are searched over the non-zero areas, so the mask is inverted.
+    filament = cv2.bitwise_not(mask)
+    contours, _ = cv2.findContours(filament, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return mask
+
+    cleaned = np.zeros_like(filament)
+    # Filling the outer contour also closes the glare spots inside the filament.
+    cv2.drawContours(
+        cleaned,
+        [select_filament_contour(contours, mask.shape[1])],
+        -1,
+        color=255,
+        thickness=cv2.FILLED,
+    )
+    return cv2.bitwise_not(cleaned)
+
+
 def process_image(frame, add_info=True, verbose=0):
     """
     Take one frame and process it. Return masked frame and mean width of the filament
@@ -96,6 +153,8 @@ def process_image(frame, add_info=True, verbose=0):
     _, binary_frame = cv2.threshold(
         gray_frame, config.BINARY_THRESHOLD, config.BINARY_MAX_VALUE, cv2.THRESH_BINARY
     )
+    if config.FILTER_FILAMENT_CONTOUR:
+        binary_frame = keep_filament_contour(binary_frame)
 
     if verbose:
         cv2.imshow("image", normalized)

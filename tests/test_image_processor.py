@@ -2,14 +2,17 @@
 
 import time
 
+import cv2
 import numpy as np
 import pytest
 
 import frames
+from config import config
 from image_processor import (
     blank_mask,
     calculate_pixel_multiplier,
     fit_filament_line,
+    keep_filament_contour,
     measure_angle,
     measure_filament,
     normalize_frame,
@@ -95,6 +98,76 @@ def test_width_in_mm_follows_width_in_pixels():
     )
 
     assert width_mm == pytest.approx(width_pxl * 0.125)
+
+
+@pytest.mark.parametrize("spots,radius", [(12, 18), (30, 25)])
+def test_dirt_is_not_measured_as_filament(spots, radius):
+    """
+    Dust on the glass is as dark as the filament. Counting it in used to
+    inflate the reading several times over on a dirty frame.
+
+    The first case is a plausibly dirty lens, the second one is deliberately
+    far worse than the real setup ever gets and is here to keep the margin.
+    """
+    _, width_pxl, _ = measure_filament(
+        frames.dirty_frame(thickness=14, spots=spots, spot_radius=radius),
+        width_multiplier=1,
+    )
+
+    assert width_pxl == pytest.approx(14, abs=1.5)
+
+
+def test_dirt_larger_than_the_filament_is_still_dropped():
+    """
+    A stress case rather than a picture of the real setup: it pins down why
+    the filament is chosen by reaching both edges of the frame and not by
+    being the biggest dark object. Specks touching each other merge into a
+    blob that can outweigh a thin filament, and then size alone picks the dirt.
+    """
+    frame = frames.filament_frame(thickness=10)
+    cv2.circle(frame, (frames.WIDTH // 2, 100), 70, (0, 0, 0), -1)
+    blob_area = np.pi * 70**2
+    assert blob_area > 10 * frames.WIDTH, "the blob must outweigh the filament"
+
+    _, width_pxl, _ = measure_filament(frame, width_multiplier=1)
+
+    assert width_pxl == pytest.approx(10, abs=1.5)
+
+
+def test_dirt_does_not_skew_the_angle():
+    """The tilt is fitted into the filament alone, not into the dirt around it"""
+    mask, _ = process_image(frames.dirty_frame(angle=15), add_info=False)
+
+    assert measure_angle(mask) == pytest.approx(15, abs=1.0)
+
+
+def test_clean_frame_is_measured_the_same_with_and_without_filtering(monkeypatch):
+    """Dropping the dirt must not change what a clean frame reads"""
+    frame = frames.filament_frame(thickness=14, angle=10)
+
+    _, filtered, _ = measure_filament(frame.copy(), width_multiplier=1)
+    monkeypatch.setattr(config, "FILTER_FILAMENT_CONTOUR", False)
+    _, unfiltered, _ = measure_filament(frame.copy(), width_multiplier=1)
+
+    assert filtered == pytest.approx(unfiltered, abs=0.1)
+
+
+def test_filtering_survives_a_frame_without_anything_dark():
+    """An overexposed frame has no contours to choose from"""
+    mask = blank_mask()
+
+    assert keep_filament_contour(mask) is not None
+    assert np.array_equal(keep_filament_contour(mask), mask)
+
+
+def test_filtering_keeps_the_filament_and_drops_the_rest():
+    """Only one dark object is left on the mask"""
+    dirty_mask, _ = process_image(frames.dirty_frame(), add_info=False)
+
+    contours, _ = cv2.findContours(
+        cv2.bitwise_not(dirty_mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    assert len(contours) == 1
 
 
 def test_dark_frame_does_not_get_a_line_fitted():

@@ -47,6 +47,22 @@ def filament_frame(thickness=14, angle=0.0):
     return frame
 
 
+def dirty_frame(thickness=14, angle=0.0, spots=12, spot_radius=18, seed=0):
+    """
+    A filament seen through dirty glass.
+
+    Dust and shadows are as dark as the filament itself, but they sit away
+    from it, above or below the middle of the frame.
+    """
+    frame = filament_frame(thickness=thickness, angle=angle)
+    rng = np.random.default_rng(seed)
+    for _ in range(spots):
+        x = int(rng.integers(0, WIDTH))
+        y = int(rng.choice([rng.integers(0, 150), rng.integers(330, HEIGHT)]))
+        cv2.circle(frame, (x, y), spot_radius, (0, 0, 0), -1)
+    return frame
+
+
 def noisy_frame():
     """Pure sensor noise, as seen on a disconnected input"""
     return np.random.default_rng(0).integers(0, 256, (HEIGHT, WIDTH, 3), dtype=np.uint8)
@@ -88,4 +104,5 @@ BROKEN_FRAMES = [
     ("grayscale", grayscale_frame()),
     ("bgra", bgra_frame()),
     ("float", float_frame()),
+    ("dirty", dirty_frame()),
 ]
