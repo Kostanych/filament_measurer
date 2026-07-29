@@ -90,7 +90,6 @@ class AppState:
             "source": "File",
             "cap": None,
             "show_mask": False,
-            "show_every_n_frame": 1,
             "df_points": pd.DataFrame(),
             "width_pxl": 1,
             "width_mm": 1,
@@ -101,8 +100,6 @@ class AppState:
             "mean_1": measurement_buffer(),
             "mean_2": measurement_buffer(),
             "measurements_total": 0,
-            "difference": 0,
-            "prev_time": 0,
             "fps": config.DEFAULT_FPS,
             "update_interval": "Every Frame",
         }

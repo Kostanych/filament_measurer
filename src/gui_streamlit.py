@@ -45,7 +45,7 @@ def set_or_change_reference():
 with st.sidebar:
     set_or_change_reference()
 
-change_reference = st.sidebar.button(
+st.sidebar.button(
     "Change reference standard",
     key="change_reference",
     on_click=change_calibration_multiplier,
@@ -64,13 +64,13 @@ video_file = st.sidebar.file_uploader(
 change_video_source(video_file)
 
 # Show PLAY/STOP button
-play_button = st.sidebar.button(
+st.sidebar.button(
     "Play",
     key="play_button",
     on_click=set_play_flag,
 )
 
-stop_button = st.sidebar.button(
+st.sidebar.button(
     "Stop",
     key="stop_button",
     on_click=stop,
@@ -83,7 +83,7 @@ update_interval = st.sidebar.selectbox(
 )
 st.session_state["update_interval"] = update_interval
 
-mask_radio = st.sidebar.radio(
+st.sidebar.radio(
     "Mask/Image",
     ["Image", "Mask"],
     key="Mask_or_image",

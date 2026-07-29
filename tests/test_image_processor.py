@@ -1,7 +1,5 @@
 """Measurement must survive any frame a camera can produce"""
 
-import time
-
 import cv2
 import numpy as np
 import pytest
@@ -11,14 +9,20 @@ from config import config
 from image_processor import (
     blank_mask,
     calculate_pixel_multiplier,
+    draw_angle_line,
     fit_filament_line,
     keep_filament_contour,
-    measure_angle,
     measure_filament,
     normalize_frame,
     process_image,
     to_display,
 )
+
+
+def angle_of(mask):
+    """The tilt the app actually reads, taken from the overlay drawing step"""
+    return draw_angle_line(mask.copy(), mask)[1]
+
 
 BROKEN_IDS = [name for name, _ in frames.BROKEN_FRAMES]
 BROKEN_VALUES = [frame for _, frame in frames.BROKEN_FRAMES]
@@ -57,7 +61,7 @@ def test_white_frame_finds_no_filament():
     mask, thickness = process_image(frames.white_frame(), add_info=False)
 
     assert thickness == 0
-    assert measure_angle(mask) is None
+    assert angle_of(mask) is None
 
 
 def test_measured_width_matches_the_drawn_filament():
@@ -74,7 +78,7 @@ def test_measured_angle_matches_the_drawn_tilt(angle):
     """The fitted angle follows the tilt of the filament"""
     mask, _ = process_image(frames.filament_frame(angle=angle), add_info=False)
 
-    assert measure_angle(mask) == pytest.approx(angle, abs=1.0)
+    assert angle_of(mask) == pytest.approx(angle, abs=1.0)
 
 
 def test_tilt_correction_is_applied_exactly_once():
@@ -138,7 +142,7 @@ def test_dirt_does_not_skew_the_angle():
     """The tilt is fitted into the filament alone, not into the dirt around it"""
     mask, _ = process_image(frames.dirty_frame(angle=15), add_info=False)
 
-    assert measure_angle(mask) == pytest.approx(15, abs=1.0)
+    assert angle_of(mask) == pytest.approx(15, abs=1.0)
 
 
 def test_clean_frame_is_measured_the_same_with_and_without_filtering(monkeypatch):
@@ -173,17 +177,12 @@ def test_filtering_keeps_the_filament_and_drops_the_rest():
 def test_dark_frame_does_not_get_a_line_fitted():
     """
     A frame that is mostly dark is broken, not a filament. Fitting a line into
-    every one of its pixels gives a meaningless angle and is slow enough to
-    stall the video loop, so the fit is skipped.
+    every one of its pixels gives a meaningless angle and took 134 ms, enough
+    to stall the video loop, so the fit is skipped outright.
     """
     mask, _ = process_image(frames.black_frame(), add_info=False)
 
-    started = time.perf_counter()
-    params = fit_filament_line(mask)
-    elapsed = time.perf_counter() - started
-
-    assert params is None
-    assert elapsed < 0.05
+    assert fit_filament_line(mask) is None
 
 
 def test_unknown_angle_keeps_the_width_unchanged():

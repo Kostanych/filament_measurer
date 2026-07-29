@@ -225,17 +225,12 @@ def fit_filament_line(mask):
     return params
 
 
-def measure_angle(mask):
-    """Compute angle on the filament. Returns None when the angle is unknown"""
-    params = fit_filament_line(mask)
-    if params is None:
-        return None
-
-    return np.arctan(params[0]) * 180.0 / np.pi
-
-
 def draw_angle_line(frame, mask):
-    """Draw angle line. Returns the frame untouched when the angle is unknown"""
+    """
+    Measure the tilt of the filament and draw it over the frame.
+
+    Returns the frame untouched and no angle when the tilt is unknown.
+    """
     params = fit_filament_line(mask)
     if params is None:
         return frame, None

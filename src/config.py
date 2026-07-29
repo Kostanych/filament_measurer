@@ -9,9 +9,7 @@ class Config:
     """Configuration class with all application constants"""
 
     # Paths
-    DATA_PATH = PROJECT_DIR / "data"
-    INPUT_PATH = DATA_PATH / "input"
-    OUTPUT_PATH = DATA_PATH / "output"
+    INPUT_PATH = PROJECT_DIR / "data" / "input"
 
     # Image processing
     BINARY_THRESHOLD = 127
