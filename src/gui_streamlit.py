@@ -1,24 +1,19 @@
 """Main UI script for Filament Measurer application"""
 
 import logging
-import cv2
+
 import streamlit as st
-from gui_logic import change_video_source, set_play_flag, stop
+
+from config import config
+from gui_logic import change_video_source, read_first_frame, set_play_flag, stop
 from image_processor import (
     change_calibration_multiplier,
     mask_switcher,
     update_title_frame,
 )
 from plot import update_rolling_plot
-from utils import AppState, get_logger
+from utils import AppState, big_text, get_logger
 from video_processor import VideoProcessor
-
-
-def update_status(new_message):
-    """Update status bar with new message"""
-    st.session_state["status_message"] = new_message
-    status_bar.text(new_message)
-
 
 logging_level = logging.DEBUG
 
@@ -27,7 +22,6 @@ st.set_page_config(layout="wide")
 
 # Session variables
 app_state = AppState()
-app_state.init_variables()
 
 # Streamlit elements
 status_bar = st.empty()
@@ -39,11 +33,11 @@ st.sidebar.header("Control Panel")
 
 
 # Put reference changing into the Fragment. Fragment updates independently
-@st.experimental_fragment
+@st.fragment
 def set_or_change_reference():
     st.session_state["reference"] = st.number_input(
         "Reference width (mm):",
-        value=float(1.75),
+        value=config.DEFAULT_REFERENCE_WIDTH_MM,
     )
 
 
@@ -83,7 +77,7 @@ stop_button = st.sidebar.button(
 
 update_interval = st.sidebar.selectbox(
     "Update Interval",
-    options=["Every Frame", "1 Second", "5 Seconds"],
+    options=list(config.UPDATE_INTERVALS),
     index=0,
 )
 st.session_state["update_interval"] = update_interval
@@ -96,7 +90,7 @@ mask_radio = st.sidebar.radio(
 )
 
 # Image display area
-col1, col2, col3 = st.columns([0.3, 0.2, 0.2])
+col1, col2, col3 = st.columns(config.COL_WIDTHS_MAIN)
 with col1:
     st.header("Video")
     st.session_state.vid_area = st.image(st.session_state.title_frame)
@@ -104,24 +98,26 @@ with col1:
 with col2:
     st.header("Results")
     st.session_state.width_pxl_area = st.markdown(
-        f'<span style="font-size: 20px;">Width, pixels: N/A</span>',
+        big_text("Width, pixels: N/A"),
         unsafe_allow_html=True,
     )
     st.session_state.width_mm_area = st.markdown(
-        f'<span style="font-size: 20px;">Width, mm:     N/A</span>',
+        big_text("Width, mm:     N/A"),
         unsafe_allow_html=True,
     )
 with col3:
     st.header("Mean rolling")
     st.session_state.rolling_1s_markdown = st.markdown(
-        f'<span style="font-size: 20px;">1 second:   0</span>', unsafe_allow_html=True
+        big_text("1 second:   0"),
+        unsafe_allow_html=True,
     )
     st.session_state.rolling_10s_markdown = st.markdown(
-        f'<span style="font-size: 20px;">10 seconds: 0</span>', unsafe_allow_html=True
+        big_text("10 seconds: 0"),
+        unsafe_allow_html=True,
     )
 
 # Plot display area
-col11, col12 = st.columns([0.8, 0.2])
+col11, col12 = st.columns(config.COL_WIDTHS_PLOT)
 with col11:
     if not st.session_state["width_list"]:
         st.session_state.plot_area = st.empty()
@@ -130,11 +126,12 @@ with col11:
 with col12:
     st.header("Difference")
     st.markdown(
-        f'<span style="font-size: 20px;">Reference:  {st.session_state.reference}</span>',
+        big_text(f"Reference:  {st.session_state.reference}"),
         unsafe_allow_html=True,
     )
+    difference = round(st.session_state.reference - st.session_state.rolling_1s, 5)
     st.session_state.difference_markdown = st.markdown(
-        f'<span style="font-size: 20px;">Difference(1s mean):{round(st.session_state.reference - st.session_state.rolling_1s, 5)}</span>',
+        big_text(f"Difference(1s mean):{difference}"),
         unsafe_allow_html=True,
     )
 
@@ -142,10 +139,9 @@ with col12:
 if st.session_state["title_frame_is_blank"]:
     logger.info(f"Update title frame first time {video_file}")
     if video_file:
-        logger.info(video_file)
-        cap = cv2.VideoCapture(st.session_state["video_path"])
-        _, frame = cap.read()
-        update_title_frame(frame)
+        frame = read_first_frame(st.session_state["video_path"])
+        if frame is not None:
+            update_title_frame(frame)
     st.session_state["title_frame_is_blank"] = False
 
 # Initialize VideoProcessor

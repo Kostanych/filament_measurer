@@ -24,8 +24,10 @@ def update_rolling_plot(plot_area):
                 y=alt.Y(
                     "values:Q",
                     scale=alt.Scale(
-                        domain=[min_value - config.PLOT_Y_MARGIN,
-                               max_value + config.PLOT_Y_MARGIN]
+                        domain=[
+                            min_value - config.PLOT_Y_MARGIN,
+                            max_value + config.PLOT_Y_MARGIN,
+                        ]
                     ),
                 ),
                 color="seconds_count:N",
@@ -33,7 +35,7 @@ def update_rolling_plot(plot_area):
             .properties(width=config.PLOT_WIDTH)
             .configure_axis(
                 labelFontSize=config.FONT_SIZE_LARGE,
-                titleFontSize=config.FONT_SIZE_LARGE
+                titleFontSize=config.FONT_SIZE_LARGE,
             )
             .configure_legend(titleFontSize=config.FONT_SIZE_LARGE)
         )
