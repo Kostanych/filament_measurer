@@ -51,12 +51,7 @@ def process_column(row_orig: pd.Series, threshhold=10):
 
     # clear row of wrong pixels
     row_res = row_res.isin(row_1)
-    # row_res = ~row_res.isin(row_0)
-    row_res = row_res.astype(int).replace(1, 255)
-
-    # print(row_res[415:425])
-
-    return row_res
+    return row_res.astype(int).replace(1, 255)
 
 
 def process_contours(mask):

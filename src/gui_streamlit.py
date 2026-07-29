@@ -9,6 +9,7 @@ from gui_logic import change_video_source, read_first_frame, set_play_flag, stop
 from image_processor import (
     change_calibration_multiplier,
     mask_switcher,
+    to_display,
     update_title_frame,
 )
 from plot import update_rolling_plot
@@ -93,7 +94,7 @@ mask_radio = st.sidebar.radio(
 col1, col2, col3 = st.columns(config.COL_WIDTHS_MAIN)
 with col1:
     st.header("Video")
-    st.session_state.vid_area = st.image(st.session_state.title_frame)
+    st.session_state.vid_area = st.image(to_display(st.session_state.title_frame))
 
 with col2:
     st.header("Results")

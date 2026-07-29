@@ -1,8 +1,10 @@
 """Utilities file"""
 
+import itertools
 import logging
 import sys
 import time
+from collections import deque
 
 import numpy as np
 import pandas as pd
@@ -50,6 +52,26 @@ def big_text(text: str) -> str:
     return f'<span style="font-size: {config.FONT_SIZE_LARGE}px;">{text}</span>'
 
 
+def measurement_buffer() -> deque:
+    """
+    Return an empty buffer for the measured values.
+
+    The buffer is bounded: a long run drops the oldest values instead of
+    eating the memory frame by frame.
+    """
+    return deque(maxlen=config.MAX_MEASUREMENT_HISTORY)
+
+
+def last_n(data, n: int) -> list:
+    """Return up to n last elements of a sequence, deque included"""
+    if n <= 0 or not len(data):
+        return []
+    start = max(len(data) - n, 0)
+    if isinstance(data, deque):
+        return list(itertools.islice(data, start, len(data)))
+    return list(data[start:])
+
+
 class AppState:
     """Holds default values of the streamlit session state"""
 
@@ -64,7 +86,7 @@ class AppState:
             "title_frame": blank_frame(),
             "title_frame_is_blank": True,
             "last_frame": blank_frame(),
-            "width_list": [],
+            "width_list": measurement_buffer(),
             "source": "File",
             "cap": None,
             "show_mask": False,
@@ -76,8 +98,9 @@ class AppState:
             "width_multiplier": config.DEFAULT_WIDTH_MULTIPLIER,
             "rolling_1s": 0,
             "rolling_10s": 0,
-            "mean_1": [],
-            "mean_2": [],
+            "mean_1": measurement_buffer(),
+            "mean_2": measurement_buffer(),
+            "measurements_total": 0,
             "difference": 0,
             "prev_time": 0,
             "fps": config.DEFAULT_FPS,
@@ -86,6 +109,19 @@ class AppState:
         for key, value in default_values.items():
             if key not in st.session_state:
                 st.session_state[key] = value
+
+    def reset_measurements(self):
+        """
+        Drop the measurements of the previous run.
+
+        Playback always restarts the video source from the beginning, so old
+        values would otherwise be mixed into the new run on the same plot.
+        """
+        st.session_state.width_list = measurement_buffer()
+        st.session_state.mean_1 = measurement_buffer()
+        st.session_state.mean_2 = measurement_buffer()
+        st.session_state.measurements_total = 0
+        st.session_state.df_points = pd.DataFrame()
 
     def get_logger(self, name: str = None, level=logging.INFO):
         """Return a configured logger. Kept for backward compatibility"""
@@ -108,25 +144,33 @@ def mean_rolling(data, fps, seconds=1):
         return 0.0
     # N for the rolling mean is len of an array, or frames of one second.
     window = min(len(data), max(int(fps * seconds), 1))
-    return float(np.mean(data[-window:]))
+    return float(np.mean(last_n(data, window)))
 
 
 def make_result_df(num_seconds=config.PLOT_HISTORY_SECONDS) -> pd.DataFrame:
     """
-    Consumes dataframe and melt it to display on the Altair plot
+    Build the dataframe of the last seconds of measurements for the plot.
+
     Returns:
         melted dataframe.
     """
+    points = max(int(st.session_state.fps * num_seconds), 1)
+    mean_1 = last_n(st.session_state.mean_1, points)
+    mean_2 = last_n(st.session_state.mean_2, points)
+    size = min(len(mean_1), len(mean_2))
+    if not size:
+        return pd.DataFrame(columns=["frame", "seconds_count", "values"])
+
+    # Frames are numbered globally, so the plot keeps moving forward even
+    # after the oldest measurements are dropped from the buffer.
+    first_frame = st.session_state.measurements_total - size
     df = pd.DataFrame(
         {
-            "Mean 1s": st.session_state.mean_1,
-            "Mean 10s": st.session_state.mean_2,
+            "Mean 1s": mean_1[-size:],
+            "Mean 10s": mean_2[-size:],
+            "frame": range(first_frame, first_frame + size),
         }
     )
-    df["frame"] = df.index
-    # Cut dataframe to represent X seconds of work.
-    max_frame = df.frame.max()
-    df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
     return df.melt("frame", var_name="seconds_count", value_name="values")
 
 

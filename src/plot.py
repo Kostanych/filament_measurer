@@ -1,8 +1,16 @@
 """Plotting utilities for visualization"""
 
-import streamlit as st
+import logging
+
 import altair as alt
+import streamlit as st
+
 from config import config
+from utils import get_logger
+
+logging_level = logging.DEBUG
+
+logger = get_logger("PLOT", level=logging_level)
 
 
 def update_rolling_plot(plot_area):
@@ -12,12 +20,16 @@ def update_rolling_plot(plot_area):
     Args:
         plot_area: Streamlit container to display the plot
     """
+    df_points = st.session_state.df_points
+    if df_points is None or df_points.empty:
+        return
+
     try:
-        min_value = st.session_state.df_points["values"].min()
-        max_value = st.session_state.df_points["values"].max()
+        min_value = df_points["values"].min()
+        max_value = df_points["values"].max()
 
         points = (
-            alt.Chart(st.session_state.df_points)
+            alt.Chart(df_points)
             .mark_line()
             .encode(
                 x=alt.X("frame"),
@@ -41,4 +53,4 @@ def update_rolling_plot(plot_area):
         )
         plot_area.altair_chart(points)
     except Exception as e:
-        print(repr(e))
+        logger.warning(f"Could not draw the plot: {e!r}")

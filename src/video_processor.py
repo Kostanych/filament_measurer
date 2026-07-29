@@ -13,6 +13,7 @@ from image_processor import (
     draw_fps,
     draw_n_frames,
     process_image,
+    to_display,
     update_title_frame,
 )
 from plot import update_rolling_plot
@@ -38,6 +39,7 @@ class VideoProcessor:
         )
 
         if not st.session_state.cap:
+            self.state.reset_measurements()
             self.open_video_source()
 
         if st.session_state["play"]:
@@ -51,7 +53,12 @@ class VideoProcessor:
                     if not ret:
                         self.stop_video(source)
                         break
-                    source = self.process_frame(frame, n_frames)
+                    # A single broken frame must not stop the whole run:
+                    # it is logged and the loop moves on to the next one.
+                    try:
+                        source = self.process_frame(frame, n_frames)
+                    except Exception as e:
+                        self.logger.warning(f"Frame {n_frames} skipped: {e!r}")
                     n_frames += 1
                     current_time = time.time()
                     if self.is_time_to_update(current_time):
@@ -76,7 +83,7 @@ class VideoProcessor:
         plot_means()
         source = draw_fps(source, fps)
         source = draw_n_frames(source, n_frames)
-        st.session_state.vid_area.image(source)
+        st.session_state.vid_area.image(to_display(source))
         st.session_state["last_frame"] = source
         return source
 
@@ -97,20 +104,31 @@ class VideoProcessor:
             st.session_state["source"] == "File"
         ):
             self.logger.debug("Video from file")
-            st.session_state.cap = cv2.VideoCapture(st.session_state["video_path"])
+            cap = cv2.VideoCapture(st.session_state["video_path"])
         elif st.session_state["source"] == "USB Device":
             self.logger.debug("Video from USB device")
-            st.session_state.cap = cv2.VideoCapture(0)
+            cap = cv2.VideoCapture(0)
         else:
             self.logger.info("Select the video first!")
             st.session_state["play"] = False
+            return
+
+        if not cap.isOpened():
+            self.logger.warning("Could not open the video source")
+            cap.release()
+            st.session_state["play"] = False
+            st.session_state["status_message"] = "Could not open the video source"
+            return
+
+        st.session_state.cap = cap
 
     def stop_video(self, source):
         """Stop video playback and release resources"""
         st.session_state.play = False
         st.session_state["last_frame"] = source
-        st.session_state.cap.release()
-        st.session_state.cap = None
+        if st.session_state.cap:
+            st.session_state.cap.release()
+            st.session_state.cap = None
 
 
 def plot_means():
@@ -133,6 +151,7 @@ def plot_means():
     )
     st.session_state.mean_1.append(st.session_state.rolling_1s)
     st.session_state.mean_2.append(st.session_state.rolling_10s)
+    st.session_state.measurements_total += 1
 
     st.session_state.width_pxl_area.markdown(
         big_text(f"Width, pixels: {round(st.session_state.width_pxl, 0)}"),
