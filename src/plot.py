@@ -1,35 +1,56 @@
-import streamlit as st
+"""Plotting utilities for visualization"""
+
+import logging
+
 import altair as alt
+import streamlit as st
+
+from config import config
+from utils import get_logger
+
+logging_level = logging.DEBUG
+
+logger = get_logger("PLOT", level=logging_level)
 
 
 def update_rolling_plot(plot_area):
     """
-    Display plot based on data from session state.
+    Display plot based on data from session state
+
     Args:
-        plot_area: place to display the plot.
+        plot_area: Streamlit container to display the plot
     """
+    df_points = st.session_state.df_points
+    if df_points is None or df_points.empty:
+        return
+
     try:
-        min_value = st.session_state.df_points["values"].min()
-        max_value = st.session_state.df_points["values"].max()
-        # print(st.session_state.df_points)
+        min_value = df_points["values"].min()
+        max_value = df_points["values"].max()
+
         points = (
-            alt.Chart(st.session_state.df_points)
+            alt.Chart(df_points)
             .mark_line()
             .encode(
                 x=alt.X("frame"),
                 y=alt.Y(
                     "values:Q",
-                    scale=alt.Scale(domain=[min_value - 0.2, max_value + 0.2]),
+                    scale=alt.Scale(
+                        domain=[
+                            min_value - config.PLOT_Y_MARGIN,
+                            max_value + config.PLOT_Y_MARGIN,
+                        ]
+                    ),
                 ),
                 color="seconds_count:N",
             )
-            .properties(width=1000)
-            .configure_axis(labelFontSize=20, titleFontSize=20)
-            .configure_legend(titleFontSize=20)
+            .properties(width=config.PLOT_WIDTH)
+            .configure_axis(
+                labelFontSize=config.FONT_SIZE_LARGE,
+                titleFontSize=config.FONT_SIZE_LARGE,
+            )
+            .configure_legend(titleFontSize=config.FONT_SIZE_LARGE)
         )
-        # Update plot every quarter of a second
-        # if st.session_state.df_points["frame"].max() % 6 == 0:
-        #     plot_area.altair_chart(points)
         plot_area.altair_chart(points)
     except Exception as e:
-        print(repr(e))
+        logger.warning(f"Could not draw the plot: {e!r}")

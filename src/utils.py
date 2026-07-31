@@ -1,79 +1,18 @@
 """Utilities file"""
 
-import sys
-import time
-
-import pandas as pd
-import numpy as np
-import streamlit as st
-import logging
-
-logging_level = logging.INFO
-logging_level = logging.DEBUG
-
-
-# utils.py
-
-import streamlit as st
-import numpy as np
-import pandas as pd
+import itertools
 import logging
 import sys
 import time
+from collections import deque
+
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+from config import config
 
 logging_level = logging.DEBUG
-
-
-class AppState:
-    def __init__(self):
-        self.init_variables()
-
-    def init_variables(self):
-        logger = self.get_logger("VARIABLES CHECKER", level=logging.DEBUG)
-        logger.info("session_state variables check")
-        default_values = {
-            "play": False,
-            "status_message": "Ready to work!",
-            "title_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
-            "title_frame_is_blank": True,
-            "last_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
-            "width_list": [],
-            "source": "File",
-            "cap": None,
-            "show_mask": False,
-            "show_every_n_frame": 1,
-            "df_points": pd.DataFrame(),
-            "width_pxl": 1,
-            "width_mm": 1,
-            "reference": 1.75,
-            "width_multiplier": 0.005,
-            "rolling_1s": 0,
-            "rolling_10s": 0,
-            "mean_1": [],
-            "mean_2": [],
-            "difference": 0,
-            "prev_time": 0,
-            "fps": 24,
-            "update_interval": "Every Frame",
-        }
-        for key, value in default_values.items():
-            if key not in st.session_state:
-                st.session_state[key] = value
-
-    def get_logger(self, name: str = None, level=logging.INFO):
-        logger = logging.getLogger(name)
-        logger.handlers = []
-        stdout = logging.StreamHandler(sys.stdout)
-        fmt = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%m/%d/%Y %I:%M:%S %p",
-        )
-        stdout.setFormatter(fmt)
-        stdout.setLevel(level)
-        logger.addHandler(stdout)
-        logger.setLevel(level)
-        logger.propagate = False
-        return logger
 
 
 def get_logger(name: str = None, level=logging.INFO):
@@ -103,79 +42,138 @@ def get_logger(name: str = None, level=logging.INFO):
     return logger
 
 
-def mean_rolling(data, fps, seconds=1):
-    """Calculate mean rolling value for N seconds."""
-    # N for the rolling mean is len of an array, or frames of one second.
-    if len(data) < fps * seconds:
-        n = len(data)
-    else:
-        n = int(fps * seconds)
-    # print(f"NNNNNNNN     {n}")
-    # calculate moving average
-    return pd.Series(data).rolling(window=n).mean().iloc[n - 1 :].values[-1]
+def blank_frame() -> np.ndarray:
+    """Return a white placeholder frame"""
+    return np.full(config.IMAGE_SHAPE, 255, dtype=np.uint8)
 
 
-# def init_variables():
-#     logger = get_logger("VARIABLES CHECKER", level=logging.DEBUG)
-#     logger.info("session_state variables check")
-#     default_values = {
-#         "play": False,
-#         "status_message": "Ready to work!",
-#         "title_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
-#         "title_frame_is_blank": True,
-#         "last_frame": np.full((480, 640, 3), 255, dtype=np.uint8),
-#         "width_list": [],
-#         "source": "File",
-#         "cap": None,
-#         "show_mask": False,
-#         "show_every_n_frame": 1,
-#         "df_points": pd.DataFrame(),
-#         "width_pxl": 1,
-#         "width_mm": 1,
-#         "reference": 1.75,
-#         "width_multiplier": 0.005,
-#         "rolling_1s": 0,
-#         "rolling_10s": 0,
-#         "mean_1": [],
-#         "mean_2": [],
-#         "difference": 0,
-#         "prev_time": 0,
-#         "fps": 24,
-#         "update_interval": 0,
-#     }
-#     for key, value in default_values.items():
-#         if key not in st.session_state:
-#             st.session_state[key] = value
-
-#     # if st.session_state["width_pxl"] == 0:
-#     #     st.session_state["width_pxl"] = 1
+def big_text(text: str) -> str:
+    """Wrap the text into a html span with the enlarged font"""
+    return f'<span style="font-size: {config.FONT_SIZE_LARGE}px;">{text}</span>'
 
 
-def make_result_df(num_seconds=2) -> pd.DataFrame:
+def measurement_buffer() -> deque:
     """
-    Consumes dataframe and melt it to display on the Altair plot
+    Return an empty buffer for the measured values.
+
+    The buffer is bounded: a long run drops the oldest values instead of
+    eating the memory frame by frame.
+    """
+    return deque(maxlen=config.MAX_MEASUREMENT_HISTORY)
+
+
+def last_n(data, n: int) -> list:
+    """Return up to n last elements of a sequence, deque included"""
+    if n <= 0 or not len(data):
+        return []
+    start = max(len(data) - n, 0)
+    if isinstance(data, deque):
+        return list(itertools.islice(data, start, len(data)))
+    return list(data[start:])
+
+
+class AppState:
+    """Holds default values of the streamlit session state"""
+
+    def __init__(self):
+        self.init_variables()
+
+    def init_variables(self):
+        """Fill session_state with default values for missing keys"""
+        default_values = {
+            "play": False,
+            "status_message": "Ready to work!",
+            "title_frame": blank_frame(),
+            "title_frame_is_blank": True,
+            "last_frame": blank_frame(),
+            "width_list": measurement_buffer(),
+            "source": "File",
+            "cap": None,
+            "show_mask": False,
+            "df_points": pd.DataFrame(),
+            "width_pxl": 1,
+            "width_mm": 1,
+            "reference": config.DEFAULT_REFERENCE_WIDTH_MM,
+            "width_multiplier": config.DEFAULT_WIDTH_MULTIPLIER,
+            "rolling_1s": 0,
+            "rolling_10s": 0,
+            "mean_1": measurement_buffer(),
+            "mean_2": measurement_buffer(),
+            "measurements_total": 0,
+            "fps": config.DEFAULT_FPS,
+            "update_interval": "Every Frame",
+        }
+        for key, value in default_values.items():
+            if key not in st.session_state:
+                st.session_state[key] = value
+
+    def reset_measurements(self):
+        """
+        Drop the measurements of the previous run.
+
+        Playback always restarts the video source from the beginning, so old
+        values would otherwise be mixed into the new run on the same plot.
+        """
+        st.session_state.width_list = measurement_buffer()
+        st.session_state.mean_1 = measurement_buffer()
+        st.session_state.mean_2 = measurement_buffer()
+        st.session_state.measurements_total = 0
+        st.session_state.df_points = pd.DataFrame()
+
+    def get_logger(self, name: str = None, level=logging.INFO):
+        """Return a configured logger. Kept for backward compatibility"""
+        return get_logger(name, level)
+
+
+def mean_rolling(data, fps, seconds=1):
+    """
+    Calculate mean value over the last N seconds of measurements.
+
+    Args:
+        data: sequence of measured values.
+        fps: current frames per second, defines the window size.
+        seconds: length of the averaging window in seconds.
+
+    Returns:
+        Mean of the last `fps * seconds` values, or 0.0 for empty data.
+    """
+    if not len(data):
+        return 0.0
+    # N for the rolling mean is len of an array, or frames of one second.
+    window = min(len(data), max(int(fps * seconds), 1))
+    return float(np.mean(last_n(data, window)))
+
+
+def make_result_df(num_seconds=config.PLOT_HISTORY_SECONDS) -> pd.DataFrame:
+    """
+    Build the dataframe of the last seconds of measurements for the plot.
+
     Returns:
         melted dataframe.
     """
-    # logger.info(f"MEAN 1: {st.session_state.mean_1}")
-    # logger.info(f"MEAN 2: {st.session_state.mean_2}")
+    points = max(int(st.session_state.fps * num_seconds), 1)
+    mean_1 = last_n(st.session_state.mean_1, points)
+    mean_2 = last_n(st.session_state.mean_2, points)
+    size = min(len(mean_1), len(mean_2))
+    if not size:
+        return pd.DataFrame(columns=["frame", "seconds_count", "values"])
+
+    # Frames are numbered globally, so the plot keeps moving forward even
+    # after the oldest measurements are dropped from the buffer.
+    first_frame = st.session_state.measurements_total - size
     df = pd.DataFrame(
         {
-            "Mean 1s": st.session_state.mean_1,
-            "Mean 10s": st.session_state.mean_2,
+            "Mean 1s": mean_1[-size:],
+            "Mean 10s": mean_2[-size:],
+            "frame": range(first_frame, first_frame + size),
         }
     )
-    # logger.info(f"FIRST DF:\n {df}")
-    df["frame"] = df.index
-    # Cut dataframe to represent X seconds of work.
-    max_frame = df.frame.max()
-    df = df[df.frame > (max_frame - st.session_state.fps * num_seconds)]
-    df = df.melt("frame", var_name="seconds_count", value_name="values")
-    # logger.info(f"MELTED DF:\n {df}")
-    return df
+    return df.melt("frame", var_name="seconds_count", value_name="values")
 
 
 class FpsCalculator:
+    """Calculates FPS as a number of frames processed during the last interval"""
+
     def __init__(self):
         self.frame_timestamps = []
         self.interval = 1
@@ -195,6 +193,6 @@ class FpsCalculator:
     def get_fps(self):
         """Return mean FPS for 'interval' seconds"""
         if len(self.frame_timestamps) < 2:
-            return 24
+            return config.DEFAULT_FPS
         time_passed = self.frame_timestamps[-1] - self.frame_timestamps[0]
         return (len(self.frame_timestamps) - 1) / time_passed

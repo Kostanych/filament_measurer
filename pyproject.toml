@@ -7,17 +7,33 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-streamlit = "^1.35.0"
+streamlit = "^1.37.0"
 scipy = "^1.13.1"
 pandas = "^2.2.2"
-matplotlib = "^3.9.0"
-av = "^12.1.0"
+numpy = "^1.26.4"
+altair = "^5.3.0"
 opencv-python = "^4.10.0.82"
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+ruff = "^0.5.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+exclude = [".git", "__pycache__", "dist"]
+
+[tool.ruff.lint]
+# F - real errors, E9 - syntax, B - likely bugs, SIM/RET/UP - readability
+select = ["F", "E9", "B", "SIM", "RET", "UP"]
 
 [tool.flake8]
 max-line-length = 120
